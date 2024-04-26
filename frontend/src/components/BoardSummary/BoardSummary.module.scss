@@ -31,7 +31,7 @@
       @include mixin.flex-container(column, flex-start, flex-start, 1vw);
       .top {
         width: 100%;
-        height: 45%;
+        max-height: 45%;
         @include mixin.flex-container(column, flex-start, flex-start, 0.5vw);
         @media only screen and (max-width: 768px) {
           @include mixin.flex-container(column, flex-start, flex-start, 2vw);
@@ -308,7 +308,7 @@
       }
       .bottom {
         width: 100%;
-        height: 55%;
+        height: 60%;
         @include mixin.flex-container(column, flex-start, flex-start, 0.5rem);
         .StoriesHeading {
           height: 10%;
