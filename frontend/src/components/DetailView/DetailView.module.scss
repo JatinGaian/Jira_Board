@@ -5,7 +5,7 @@
   width: 100%;
   height: 100%;
   background-color: $background;
-  @include mixin.flex-container(column, flex-start, flex-start, .5rem);
+  @include mixin.flex-container(column, flex-start, flex-start, 0.5rem);
   // padding: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
   border-radius: 0.4rem;
   // overflow: scroll;
@@ -198,82 +198,110 @@
     @media only screen and (max-width: 768px) {
       @include mixin.flex-container(row, flex-start, flex-start, 0.2rem);
     }
-    @include mixin.flex-container(column, flex-start, flex-start, 1rem);
+    @include mixin.flex-container(column, flex-start, flex-start, .5rem);
     width: 100%;
-    min-height:48%;
+    min-height: 48%;
     overflow: scroll;
     background-color: $background;
     padding: 0;
-    @include mixin.flex-container(row, flex-start, flex-start, 0.5rem);
-    flex-wrap: wrap;
 
-    .tiles,
-    .tiles_ac,
-    .tiles_timelog,
-    .tiles_Predictability {
-      min-width: 49.2%;
-      max-width: 49.2%;
-      height: 48%;
-      border-radius: 0.2rem;
-      box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.1);
-      background-color: $surface;
-      border-radius: 0.2rem;
+    .header {
+      width: 100%;
+      height: 10%;
+      @media only screen and (max-width: 768px) {
+      }
+      @include mixin.flex-container(
+        row !important,
+        space-between !important,
+        center !important
+      );
+
       > p {
+        background-color: $surface;
+        color: $onSurfacePrimary;
+        font-size: clamp(0.068125rem, -0.0002rem + 1.0938vw, 6.8359375rem);
+        padding: clamp(0.11125rem, 0rem + 0.1391vw, 0.33375rem);
+        padding-inline: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+        border-radius: 0.2rem;
         @media only screen and (max-width: 768px) {
           font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
         }
-        width: 100%;
-        text-align: center;
-        border-top-left-radius: 0.2rem;
-        border-top-right-radius: 0.2rem;
-        padding: 0.4rem;
-        border-bottom: 0.001rem solid $onBackground;
-        color: $onSurfaceSecondary;
-        background-color: #0e0e0e32;
-        color: #a8b5c6;
       }
-      > div {
-        @include mixin.flex-container(row, flex-start, flex-start, 0.4rem);
-        min-height: fit-content;
-        flex-wrap: wrap;
-        height: 60%;
+    }
+    .content {
+      width: 100%;
+      height: 90%;
+      overflow: scroll;
+      @include mixin.flex-container(row, flex-start, flex-start, 0.5rem);
+      flex-wrap: wrap;
+      .tiles,
+      .tiles_ac,
+      .tiles_timelog,
+      .tiles_Predictability {
+        min-width: 49.2%;
+        max-width: 49.2%;
+        height: 48%;
+        border-radius: 0.2rem;
+        box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.1);
         background-color: $surface;
-        overflow: scroll;
-        font-size: clamp(0.555625rem, 0rem + 0.6945vw, 1.666875rem);
-        padding: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
-
-        .tags,
+        border-radius: 0.2rem;
         > p {
-          min-width: fit-content;
-          background-color: #00000032;
-          color: $onSurfacePrimary;
-          padding: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
-          padding-inline: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
-          border-radius: 0.2rem;
-          &:hover {
-            background-color: #0080ff20;
-            color: #46a0ff;
-            box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.1);
+          @media only screen and (max-width: 768px) {
+            font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+          }
+          width: 100%;
+          text-align: center;
+          border-top-left-radius: 0.2rem;
+          border-top-right-radius: 0.2rem;
+          padding: 0.4rem;
+          border-bottom: 0.001rem solid $onBackground;
+          color: $onSurfaceSecondary;
+          background-color: #0e0e0e32;
+          color: #a8b5c6;
+        }
+        > div {
+          @include mixin.flex-container(row, flex-start, flex-start, 0.4rem);
+          min-height: fit-content;
+          flex-wrap: wrap;
+          height: 60%;
+          background-color: $surface;
+          overflow: scroll;
+          font-size: clamp(0.555625rem, 0rem + 0.6945vw, 1.666875rem);
+          padding: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+
+          .tags,
+          > p {
+            min-width: fit-content;
+            background-color: #00000032;
+            color: $onSurfacePrimary;
+            padding: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+            padding-inline: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+            border-radius: 0.2rem;
+            &:hover {
+              background-color: #0080ff20;
+              color: #46a0ff;
+              box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.1);
+            }
           }
         }
+        // .sc_data{
+        //   @include mixin.flex-container(column, flex-start, flex-start, 0.4rem);
+        //   min-height: fit-content;
+        //   flex-wrap: wrap;
+        // }
       }
-      // .sc_data{
-      //   @include mixin.flex-container(column, flex-start, flex-start, 0.4rem);
-      //   min-height: fit-content;
-      //   flex-wrap: wrap;
-      // }
-    }
-    .tiles_ac,
-    .tiles_Predictability {
-      height: auto;
-    }
+      .tiles_ac,
+      .tiles_Predictability {
+        height: auto;
+      }
 
-    .tiles_Predictability {
-      height: 30%;
-    }
+      .tiles_Predictability {
+        height: 30%;
+      }
 
-    .tiles_timelog {
-      height: auto;
+      .tiles_timelog {
+        height: auto;
+      }
     }
   }
 }

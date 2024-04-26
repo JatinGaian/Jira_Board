@@ -106,7 +106,7 @@ const Detail_view = ({ past_sprint_heros, problem_solver, trust_worthy, stories_
                                         <div onClick={(e) => {
                                             setSelectedSprint(sprintName)
                                             findSprint(sprintName)
-                                            findSubtask(sprintName, sprintData) 
+                                            findSubtask(sprintName, sprintData)
                                         }} key={index}>
                                             <p title={sprintName}>{sprintName}</p>
                                             <SummaryPieCharts key={index} id={`chart ${index}`}
@@ -122,103 +122,106 @@ const Detail_view = ({ past_sprint_heros, problem_solver, trust_worthy, stories_
                 }
             </div>
             <div className={css.metaDataContainer}>
-                <div className={css.tiles}>
-                    <p>
-                        {`Mr.Trust Worthy`}
-                    </p>
-                    <div>
-                        {trust_worthy == "" ? <SmallLoader /> :
+                <div className={css.header}>
+                    <p>Metadata</p>
+                </div>
+                <div className={css.content}>
+                    <div className={css.tiles}>
+                        <p>
+                            {`Mr.Trust Worthy`}
+                        </p>
+                        <div>
+                            {trust_worthy == "" ? <SmallLoader /> :
 
-                            trust_worthy?.map((heros, index) => (
-                                <div
-                                    key={index}
-                                    className={`${css.tags}`}
-                                >
-                                    {heros?.assignee}
-                                </div>
-                            )
-                            )}
+                                trust_worthy?.map((heros, index) => (
+                                    <div
+                                        key={index}
+                                        className={`${css.tags}`}
+                                    >
+                                        {heros?.assignee}
+                                    </div>
+                                )
+                                )}
+                        </div>
                     </div>
-                </div>
-                <div className={css.tiles}>
-                    <p>
-                        {`Mr.Problem Solver`}
-                    </p>
-                    <div>
-                        {problem_solver == "" ? <SmallLoader /> :
-                            problem_solver?.map((heros, index) => (
-                                <div
-                                    key={index}
-                                    className={`${css.tags}`}
-                                >
-                                    {heros?.assignee}
-                                </div>
-                            )
-                            )}
+                    <div className={css.tiles}>
+                        <p>
+                            {`Mr.Problem Solver`}
+                        </p>
+                        <div>
+                            {problem_solver == "" ? <SmallLoader /> :
+                                problem_solver?.map((heros, index) => (
+                                    <div
+                                        key={index}
+                                        className={`${css.tags}`}
+                                    >
+                                        {heros?.assignee}
+                                    </div>
+                                )
+                                )}
+                        </div>
                     </div>
-                </div>
-                <div className={css.tiles}>
-                    <p>
-                        {`Past Sprint Heros`}
-                    </p>
-                    <div>
-                        {past_sprint_heros == "" ? <SmallLoader />
-                            : past_sprint_heros?.map((heros, index) => (
-                                <div
-                                    key={index}
-                                    className={`${css.tags}`}
-                                >
-                                    {heros?.assignee}
-                                </div>
-                            )
-                            )}
+                    <div className={css.tiles}>
+                        <p>
+                            {`Past Sprint Heros`}
+                        </p>
+                        <div>
+                            {past_sprint_heros == "" ? <SmallLoader />
+                                : past_sprint_heros?.map((heros, index) => (
+                                    <div
+                                        key={index}
+                                        className={`${css.tags}`}
+                                    >
+                                        {heros?.assignee}
+                                    </div>
+                                )
+                                )}
+                        </div>
                     </div>
-                </div>
-                <div className={css.tiles_Predictability}>
-                    <p>
-                        {`On-Time Predictability`}
-                    </p>
-                    <div>
-                        <p className={`${css.tags}`}>Total Subtasks : {meta_data.number_of_sub_tasks}</p>
-                        <p className={`${css.tags}`}>Completed Subtasks : {meta_data.completed_sub_tasks}</p>
-                        {/* <p className={`${css.tags}`}>Completed Subtasks : {stories_data[0]?.sprint_end} </p> */}
+                    <div className={css.tiles_Predictability}>
+                        <p>
+                            {`On-Time Predictability`}
+                        </p>
+                        <div>
+                            <p className={`${css.tags}`}>Total Subtasks : {meta_data.number_of_sub_tasks}</p>
+                            <p className={`${css.tags}`}>Completed Subtasks : {meta_data.completed_sub_tasks}</p>
+                            {/* <p className={`${css.tags}`}>Completed Subtasks : {stories_data[0]?.sprint_end} </p> */}
+                        </div>
+                        <div>
+                            <p className={`${css.tags}`}>Sprint Start : {stories_data[0]?.sprint_start}</p>
+                            <p className={`${css.tags}`}>Sprint End : {stories_data[0]?.sprint_end} </p>
+                        </div>
                     </div>
-                    <div>
-                        <p className={`${css.tags}`}>Sprint Start : {stories_data[0]?.sprint_start}</p>
-                        <p className={`${css.tags}`}>Sprint End : {stories_data[0]?.sprint_end} </p>
+                    <div className={css.tiles_timelog}>
+                        <p>
+                            {`Time log info `}
+                        </p>
+                        <div>
+                            <p className={`${css.tags}`}>Original Estimate : {storyData.original_estimate}</p>
+                            <p className={`${css.tags}`}>Remaining Estimate : {storyData.remaining_estimate}</p>
+                            <p className={`${css.tags}`}>Time spent : {storyData.time_spent}</p>
+                        </div>
                     </div>
-                </div>
-                <div className={css.tiles_timelog}>
-                    <p>
-                        {`Time log info `}
-                    </p>
-                    <div>
-                        <p className={`${css.tags}`}>Original Estimate : {storyData.original_estimate}</p>
-                        <p className={`${css.tags}`}>Remaining Estimate : {storyData.remaining_estimate}</p>
-                        <p className={`${css.tags}`}>Time spent : {storyData.time_spent}</p>
-                    </div>
-                </div>
-                <div className={css.tiles_ac}>
-                    <p>
-                        {`Story AC Hygiene `}
-                    </p>
-                    <div className={css.sc_data}>
-                        <p className={`${css.tags}`}>AC added ~ {ac_hygine}</p>
-                        {/* <p className={`${css.tags}`}>{ac_hygine}</p> */}
+                    <div className={css.tiles_ac}>
+                        <p>
+                            {`Story AC Hygiene `}
+                        </p>
+                        <div className={css.sc_data}>
+                            <p className={`${css.tags}`}>AC added ~ {ac_hygine}</p>
+                            {/* <p className={`${css.tags}`}>{ac_hygine}</p> */}
+                        </div>
+
                     </div>
 
-                </div>
-            
-                <div className={css.tiles_ac}>
-                    <p>
-                        {`Peer review info `}
-                    </p>
-                    <div>
-                        <p className={`${css.tags}`}>Reviewers : {storyData.story_reviewers}</p>
+                    <div className={css.tiles_ac}>
+                        <p>
+                            {`Peer review info `}
+                        </p>
+                        <div>
+                            <p className={`${css.tags}`}>Reviewers : {storyData.story_reviewers}</p>
+                        </div>
                     </div>
                 </div>
-
-              
             </div>
         </div>
     )

@@ -69,11 +69,11 @@ function App() {
                   <div className={css.boardSelect}>
                     <span onClick={() => setShowSelect(!showSelect)}>
                       <img src={slash} alt="" />
-                      <p style={{ color: `${showSelect ?"#bb86fc":"white"}`}}>{breadCrumbs?.boardSummary}</p>
+                      <p style={{ color: `${showSelect ? "#bb86fc" : "white"}` }}>{breadCrumbs?.boardSummary}</p>
                       <img src={downArrow} alt="" />
                     </span>
                     <div className={`${css.selectContainer} ${!showSelect && css.hideSelect}`} >
-                      <input type="text" autoFocus placeholder="Search Boards.." value={boardSearch} onChange={(e) => setBoardSearch(e.target.value)} />
+                      <input type="text" placeholder="Search Boards.." value={boardSearch} onChange={(e) => setBoardSearch(e.target.value)} />
                       <img src={search} alt="" />
                       <p>{
                         `${activeBoards && activeBoards?.filter((board) =>
@@ -91,7 +91,7 @@ function App() {
                               // id={board.board_name === boardSearch ? css.selected : null}
                               onClick={() => {
                                 console.log(board)
-                                setBreadCrumbs({ ...breadCrumbs, boardSummary: board.board_name ,sprint:board.sprints[0].sprint_name})
+                                setBreadCrumbs({ ...breadCrumbs, boardSummary: board.board_name, sprint: board.sprints[0].sprint_name })
                                 setSelectedSprintFromSummary(null)
                                 setSelectedSprint(null)
                                 navigate(`/BoardSummary/${board.board_id}/${board.board_name}`)

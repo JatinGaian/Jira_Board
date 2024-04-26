@@ -16,7 +16,7 @@
     @media only screen and (max-width: 768px) {
       @include mixin.flex-container(column, flex-start, flex-start);
     }
-    
+
     width: 100vw;
     height: 87vh;
     @include mixin.flex-container(row, flex-start, flex-start);
@@ -28,7 +28,7 @@
         padding-bottom: 0;
       }
       @media screen and (min-width: 768px) and (max-width: 1024px) {
-        gap: .4rem;
+        gap: 0.4rem;
         height: 73%;
       }
       width: 50%;
