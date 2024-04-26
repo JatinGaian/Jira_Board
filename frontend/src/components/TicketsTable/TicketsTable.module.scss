@@ -1,0 +1,154 @@
+@use "../../mixin.module.scss";
+@import "../../mixin.module.scss";
+
+.mainContainer {
+  width: 100%;
+  height: 100%;
+  @include mixin.flex-container(row, flex-start, flex-start);
+  border-radius: 0.2vw;
+  overflow: scroll;
+  .columns {
+    @media only screen and (max-width: 768px) {
+      min-width: 175px;
+    }
+    max-width: 15.9vw;
+    min-width: 15.9vw;
+    height: 100%;
+    .heading {
+      @media only screen and (max-width: 768px) {
+        font-size: clamp(0.7225rem, 0.0003rem + 0.9027vw, 2.166875rem);
+      }
+      @include mixin.flex-container(column, center, center);
+      border-right: 0.1vw solid $onBackground;
+      text-align: center;
+      background-color: $surface;
+      color: $onSurfacePrimary;
+      white-space: nowrap; /* Prevent text from wrapping */
+      overflow: hidden;
+      text-overflow: ellipsis; /* Show ellipsis for overflow text */
+      @include mixin.flex-container(row, space-between, center);
+      padding: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+
+      span {
+        @include mixin.flex-container(row, flex-start, center, 0.5rem);
+        width: 90%;
+        height: 100%;
+        padding-inline: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+        img {
+          width: clamp(0.068125rem, -0.0002rem + 1.0938vw, 6.8359375rem);
+        }
+        p {
+          font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+        }
+        // background-color: #ffca372b
+      }
+      > p {
+        font-size: clamp(0.068125rem, -0.0002rem + 1.0938vw, 6.8359375rem);
+        @media only screen and (max-width: 768px) {
+          width: min-content;
+          height: min-content;
+          padding: 0.1rem 0.35rem;
+        }
+        min-width: 10%;
+        width: fit-content;
+        height: fit-content;
+        padding: clamp(0.11125rem, 0rem + 0.1391vw, 0.33375rem);
+        font-size: clamp(0.555625rem, 0rem + 0.6945vw, 1.666875rem);
+        @include mixin.flex-container(row, center, center, 1vw);
+        border-radius: .2rem;
+        box-shadow: 4px 2px 10px 2px #171616;
+        background-color: #bb86fc1f;
+        color: $primary;
+      }
+    }
+    .content {
+      @media only screen and (max-width: 768px) {
+        @include mixin.flex-container(column, flex-start, flex-start, 2vw);
+      }
+      width: 100%;
+      height: 89%;
+      border-right: 0.1vw solid $onBackground;
+      overflow: scroll;
+      margin-top: clamp(0.11125rem, 0rem + 0.1391vw, 0.33375rem);
+      @include mixin.flex-container(column, flex-start, flex-start, 0.5vw);
+      padding: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+      .ticket {
+        @media only screen and (max-width: 768px) {
+          border-radius: 1vw;
+        }
+        width: 100%;
+        min-height: 20vh;
+        position: relative;
+        // border: 0.1vw solid $onBackground;
+        border-radius: 0.4vw;
+        // padding: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+        font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+        background-color: $surface;
+        overflow-y: hidden;
+        transition: ease-in-out 200ms;
+        &:hover {
+          cursor: pointer;
+          transform: translateY(-2px);
+          background-color: #bb86fc1f;
+          .header {
+            border-bottom: 0.1vw solid $primary;
+          }
+        }
+        .header {
+          width: 100%;
+          height: 20%;
+          padding: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+          padding-bottom: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+          @include mixin.flex-container(row, flex-start, center, 0.4vw);
+          border-bottom: 0.1vw solid $background;
+          img {
+            width: clamp(1.125rem, 0rem + 1.4063vw, 3.375rem);
+          }
+          > p {
+            text-align: center;
+            width: 80%;
+            font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+            font-weight: 500;
+            color: $primary;
+            white-space: nowrap; /* Prevent text from wrapping */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Show ellipsis for overflow text */
+          }
+        }
+        .attributes {
+          width: 100%;
+          height: 80%;
+          padding-inline: clamp(0.555625rem, 0rem + 0.6945vw, 1.666875rem);
+          @include mixin.flex-container(column, space-evenly, flex-start);
+          > p {
+            width: 100%;
+            font-size: clamp(0.61125rem, 0rem + 0.7641vw, 1.83375rem);
+            color: $onSurfaceSecondary;
+          }
+        }
+        > p {
+          position: absolute;
+          top: clamp(1.945rem, 0.0006rem + 2.4305vw, 5.83375rem);
+          right: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+          background-color: #bb86fc1f;
+          color: $primary;
+          font-size: clamp(0.555625rem, 0rem + 0.6945vw, 1.666875rem);
+          padding: 0.1vw;
+          padding-inline: clamp(0.5rem, 0rem + 0.425vw, 1.5rem);
+          border-radius: 0.2vw;
+          box-shadow: 0px 6px 10px 0px rgb(23, 22, 22);
+        }
+      }
+      .selected {
+      }
+    }
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0;
+  white-space: nowrap; /* Prevent text from wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis; /* Show ellipsis for overflow text */
+}

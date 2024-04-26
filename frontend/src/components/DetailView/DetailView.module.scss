@@ -1,0 +1,289 @@
+@use "../../mixin.module.scss";
+@import "../../mixin.module.scss";
+
+.mainContainer {
+  width: 100%;
+  height: 100%;
+  background-color: $background;
+  @include mixin.flex-container(column, flex-start, flex-start, .5rem);
+  // padding: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+  border-radius: 0.4rem;
+  // overflow: scroll;
+  .chartAndGraph {
+    width: 100%;
+    height: 50%;
+    @include mixin.flex-container(column, flex-start, center, 0.5rem);
+    > div {
+      width: 100%;
+      height: 21vh;
+      padding: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+      padding-inline: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+      background-color: $surface;
+      border-radius: 0.2rem;
+      box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.1);
+      > div {
+        @include mixin.flex-container(row, space-between, center);
+        padding: clamp(0.11125rem, 0rem + 0.1391vw, 0.33375rem);
+        > p {
+          background-color: #262626;
+          padding: clamp(0.11125rem, 0rem + 0.1391vw, 0.33375rem);
+          padding-inline: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+          border-radius: 0.2rem;
+          color: white;
+          box-shadow: 0px 6px 10px 0px rgb(23, 22, 22);
+        }
+        span {
+          @media only screen and (max-width: 768px) {
+            @include mixin.flex-container(
+              column,
+              space-between,
+              flex-end,
+              0.2rem
+            );
+            font-size: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+          }
+          @include mixin.flex-container(row, flex-start, flex-start, 1vw);
+          position: relative;
+          > p {
+            @media only screen and (max-width: 768px) {
+              font-size: clamp(0.5rem, 0rem + 0.225vw, 1.5rem);
+            }
+            font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+            background-color: #bb86fc1f;
+            color: $primary;
+            padding: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+            padding-inline: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+            border-radius: 0.2rem;
+            box-shadow: 0px 6px 10px 0px rgb(23, 22, 22);
+          }
+          img {
+            width: clamp(1rem, 0rem + 1.25vw, 3rem);
+            background-color: #262626;
+            border-radius: 100%;
+            padding: 0.2rem 0.2rem;
+            border: 0.05rem solid $primary;
+            box-shadow: 0px 6px 10px 0px rgb(23, 22, 22);
+            cursor: pointer;
+          }
+          .details {
+            position: absolute;
+            top: 1.1rem;
+            right: 1rem;
+            width: fit-content;
+            height: auto;
+            background-color: #262626;
+            box-shadow: 0px 6px 10px 0px rgb(23, 22, 22);
+            border-radius: 0.2rem;
+            color: white;
+            z-index: 1;
+            padding: 0.4rem 0.4rem;
+            font-size: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+            transition: all ease-in-out 0.2s;
+            > p {
+              &:not(&:last-child) {
+                border-bottom: 0.05rem solid $onBackground;
+              }
+              padding: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+              font-weight: normal;
+            }
+          }
+          #show {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+          }
+          #hide {
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(100%);
+          }
+        }
+        button {
+          @media only screen and (max-width: 768px) {
+            font-size: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+            border-radius: 0.1rem;
+          }
+          border: none;
+          outline: none;
+          font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+          background-color: $primary;
+          color: $background;
+          padding: 0.1rem 0.3rem;
+          border-radius: 0.2rem;
+        }
+      }
+      &:nth-child(2) {
+        width: 100%;
+        height: 21vh;
+        box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.1);
+        > div {
+          @include mixin.flex-container(row, space-between, flex-start);
+          padding: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+        }
+      }
+      .loaderContainer {
+        width: 100%;
+        height: 70%;
+        @include mixin.flex-container(column, center, center, 1vw);
+      }
+    }
+
+    .chartContainer {
+      @media only screen and (max-width: 768px) {
+        justify-content: space-between;
+        row-gap: 1rem;
+      }
+      width: 100%;
+      height: 100%;
+      border-radius: 0.4vw;
+      overflow: scroll;
+      @include mixin.flex-container(row, flex-start, flex-start, 2vw);
+      flex-wrap: wrap;
+      background-color: $background;
+      > div {
+        @media only screen and (max-width: 768px) {
+          width: 48%;
+          height: 140px;
+        }
+        background-color: $surface;
+        border-radius: 0.4vw;
+        width: 47%;
+        height: 200px;
+        padding: clamp(0.555625rem, 0rem + 0.6945vw, 1.666875rem);
+        @include mixin.flex-container(column, flex-start, center, 0.5rem);
+        > p {
+          @media only screen and (max-width: 768px) {
+            font-size: 0.4rem;
+            min-height: 1rem;
+            @include mixin.flex-container(column, center, center);
+          }
+          background-color: transparent;
+          width: 100%;
+          text-align: center;
+          color: $onSurfacePrimary;
+          font-size: clamp(0.068125rem, -0.0002rem + 1.0938vw, 6.8359375rem);
+        }
+      }
+      .loadingContainer {
+        width: 100%;
+        height: 100%;
+        border-radius: 0.4vw;
+        overflow: scroll;
+        background-color: $background;
+        @include mixin.flex-container(row, flex-start, flex-start, 2vw);
+        flex-wrap: wrap;
+        .loading,
+        .loader {
+          @media only screen and (max-width: 768px) {
+            width: 30%;
+            height: 140px;
+          }
+          @include mixin.flex-container(row, center, center, 2vw);
+          opacity: 0.7;
+          border-radius: 0.4vw;
+          font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+          width: 30%;
+          height: 200px;
+          position: relative;
+          animation: skeleton-loading 1s linear infinite alternate;
+        }
+        .loader {
+          animation: none !important;
+        }
+      }
+    }
+  }
+
+  .metaDataContainer {
+    @media only screen and (max-width: 768px) {
+      @include mixin.flex-container(row, flex-start, flex-start, 0.2rem);
+    }
+    @include mixin.flex-container(column, flex-start, flex-start, 1rem);
+    width: 100%;
+    min-height:48%;
+    overflow: scroll;
+    background-color: $background;
+    padding: 0;
+    @include mixin.flex-container(row, flex-start, flex-start, 0.5rem);
+    flex-wrap: wrap;
+
+    .tiles,
+    .tiles_ac,
+    .tiles_timelog,
+    .tiles_Predictability {
+      min-width: 49.2%;
+      max-width: 49.2%;
+      height: 48%;
+      border-radius: 0.2rem;
+      box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.1);
+      background-color: $surface;
+      border-radius: 0.2rem;
+      > p {
+        @media only screen and (max-width: 768px) {
+          font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+        }
+        width: 100%;
+        text-align: center;
+        border-top-left-radius: 0.2rem;
+        border-top-right-radius: 0.2rem;
+        padding: 0.4rem;
+        border-bottom: 0.001rem solid $onBackground;
+        color: $onSurfaceSecondary;
+        background-color: #0e0e0e32;
+        color: #a8b5c6;
+      }
+      > div {
+        @include mixin.flex-container(row, flex-start, flex-start, 0.4rem);
+        min-height: fit-content;
+        flex-wrap: wrap;
+        height: 60%;
+        background-color: $surface;
+        overflow: scroll;
+        font-size: clamp(0.555625rem, 0rem + 0.6945vw, 1.666875rem);
+        padding: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+
+        .tags,
+        > p {
+          min-width: fit-content;
+          background-color: #00000032;
+          color: $onSurfacePrimary;
+          padding: clamp(0.2225rem, 0.0003rem + 0.2777vw, 0.666875rem);
+          padding-inline: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+          border-radius: 0.2rem;
+          &:hover {
+            background-color: #0080ff20;
+            color: #46a0ff;
+            box-shadow: 0px 5px 5px rgba(0, 0, 0, 0.1);
+          }
+        }
+      }
+      // .sc_data{
+      //   @include mixin.flex-container(column, flex-start, flex-start, 0.4rem);
+      //   min-height: fit-content;
+      //   flex-wrap: wrap;
+      // }
+    }
+    .tiles_ac,
+    .tiles_Predictability {
+      height: auto;
+    }
+
+    .tiles_Predictability {
+      height: 30%;
+    }
+
+    .tiles_timelog {
+      height: auto;
+    }
+  }
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-color: #363636;
+  }
+
+  100% {
+    background-color: #161616;
+  }
+}

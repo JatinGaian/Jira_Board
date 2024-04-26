@@ -1,0 +1,72 @@
+.story-status {
+  box-sizing: border-box;
+  font-size: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  /* padding: 1rem; */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px,
+    rgba(60, 64, 67, 0.15) 0px 2px 6px 2px;
+}
+
+.task-status-done {
+  background-color: rgb(4, 230, 4);
+}
+
+.task-status-indeterminate {
+  background-color: rgb(246, 246, 18);
+}
+
+.task-status-todo {
+  background-color: rgb(92, 92, 250);
+}
+
+.table-head td {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.grid-comments {
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 50px 100px -20px,
+    rgba(0, 0, 0, 0.3) 0px 30px 60px -30px,
+    rgba(10, 37, 64, 0.35) 0px -2px 6px 0px inset;
+}
+
+td {
+  width: 5%;
+}
+
+.buttons{
+  display: flex;
+  justify-content: space-between;
+}
+
+.data-row{
+  font-size: 0.8rem;
+}
+
+.header{
+  font-size: 1.1rem;
+}
+
+td, tr{
+  border: 1px solid black;
+}
+
+#root > div > div.story-status.grid-comments > div:nth-child(2) > div > div > div > div.sc-hHftZz.gBmxlM.rdt_TableBody {
+  width: 100vw;
+}
+
+.jJhCqB div:first-child{
+  white-space: normal !important;
+}
+
+.qDYwR{
+  height: 80vh;
+  overflow-x :hidden !important;
+}
