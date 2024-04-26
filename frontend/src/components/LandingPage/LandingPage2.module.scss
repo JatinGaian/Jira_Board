@@ -178,17 +178,20 @@
     margin-top: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
     margin-bottom: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
     @media only screen and (max-width: 767px) {
-      height: 40vh;
+      // height: 40vh;
+      height: 80vh;
       // padding: clamp(0.0390625rem, 0rem + 2.825vw, 3.90625rem);
     }
     @media screen and (min-width: 768px) and (max-width: 1024px) {
-      height: 38vh;
+      // height: 38vh;
+      height: 80vh;
       @include mixin.flex-container(row, center, center, 1.3vw);
       flex-wrap: wrap;
       overflow: scroll;
     }
     width: 100%;
-    height: 36.5vh;
+    // height: 36.5vh;
+    height: 78vh;
     overflow: scroll;
     @include mixin.flex-container(row, flex-start, flex-start, 1.3vw);
     flex-wrap: wrap;

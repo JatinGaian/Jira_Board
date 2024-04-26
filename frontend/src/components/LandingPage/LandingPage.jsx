@@ -570,11 +570,11 @@ function LandingPage({ setBoardId, setView, setBoardName }) {
                                                 className={css.favIcon}
                                                 onClick={(e) => handleFavClick(e, board)}
                                             >
-                                                {isBoardFavorited ? (
+                                                {/* {isBoardFavorited ? (
                                                     <BsSuitHeartFill style={{ color: "#A367B1" }} />
                                                 ) : (
                                                     <BsSuitHeart style={{ color: "#A367B1" }} />
-                                                )}
+                                                )} */}
                                             </span>
                                         </div>
                                         <p>{board.board_name}</p>
@@ -586,16 +586,15 @@ function LandingPage({ setBoardId, setView, setBoardName }) {
                     }
                 </div>
 
-                <div className={css.favHeader}>
+                {/* <div className={css.favHeader}>
                     <p>Favourite Boards</p>
                     <span>
                         <img className={is_summary ? css.selected : null} src={charts} onClick={(e) => { summary_view() }} alt="" />
                         <img className={!is_summary ? css.selected : null} src={list} onClick={(e) => setIs_summary(false)} alt="" />
                     </span>
-                    {/* <button>Summary Dashboards</button> Active Sprints ({favboards.length}) */}
-                </div>
+                </div> */}
 
-                <div className={css.summary}>
+                {/* <div className={css.summary}>
                     {
                         is_summary ?
 
@@ -647,7 +646,7 @@ function LandingPage({ setBoardId, setView, setBoardName }) {
                                 }
                             </div>
                     }
-                </div>
+                </div> */}
 
 
 
