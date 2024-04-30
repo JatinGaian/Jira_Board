@@ -9,6 +9,7 @@ const getAlerts = require("./APIs/getalerts");
 const { isToday } = require("./APIs/utils");
 const get_board_metadata = require("./APIs/get_board_metadata");
 const get_project_data = require("./APIs/get_project_data");
+const get_all_boards = require("./APIs/get_all_boards");
 
 const app = express();
 const PORT = 8080;
@@ -22,7 +23,30 @@ app.get("/health", async (req, res) => {
   res.json({ message: "ok" });
 });
 
+
+
 // APIs for React
+
+
+// All boards
+app.get("/allBoards", async (req, res) => {
+  try {
+    const data = await get_all_boards();
+    let response = data ? data.map(board => ({
+      board_id: board.id,
+      board_name: board.name,
+      board_type: board.type
+    })) : [];
+
+    console.log(response);
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
 
 app.get("/:boardId/allSprints", async (req, res) => {
   const board_id = req.params.boardId;
@@ -70,8 +94,8 @@ app.get("/alerts", async (req, res) => {
           story_reviewers: issue.fields.customfield_10003
             ? issue.fields.customfield_10003.length !== 0
               ? issue.fields.customfield_10003
-                .map((r, i) => r.displayName)
-                .join(", ")
+                  .map((r, i) => r.displayName)
+                  .join(", ")
               : "Reviewers not added"
             : "Reviewers not added",
           // updated: new Date(issue.fields.updated).getTime(),
@@ -131,56 +155,77 @@ app.get("/:boardId/activeSprint", async (req, res) => {
 app.get("/sprint/:sprintId/stories", async (req, res) => {
   const sprint_id = req.params.sprintId;
   const response = await getSprintIssues(sprint_id);
-  const issues = response?.issues
-    ? response.issues
-      .filter((issue) => issue.fields.issuetype.name === "Story")
-      .map((issue) => {
-        return {
-          story_id: issue.id,
-          story_name: issue.fields.summary,
-          story_type: issue.fields.issuetype.name,
-          story_status: issue.fields.status.statusCategory.name,
-          project_id: issue.fields.project.id,
-          project_name: issue.fields.project.name,
-          status_name: issue.fields.status.name,
-          sprint_id: issue.fields.customfield_10018[0].id.toString(),
-          story_ac_hygiene: issue.fields.customfield_10157 ? "YES" : "NO",
-          original_estimate:
-            issue.fields.timetracking.originalEstimate || "Not added",
-          remaining_estimate:
-            issue.fields.timetracking.remainingEstimate || "Not added",
-          time_spent: issue.fields.timetracking.timeSpent || "Not added",
-          story_reviewers: issue.fields.customfield_10003
-            ? issue.fields.customfield_10003.length !== 0
-              ? issue.fields.customfield_10003
-                .map((r, i) => r.displayName)
+
+  const story_subtask_map = {};
+  const issues = [];
+
+  for (let issue of response?.issues || []) {
+    if (issue.fields.issuetype.name === "Story") {
+      const story_id = issue.id;
+      const story = {
+        story_id: story_id,
+        story_name: issue.fields.summary,
+        story_type: issue.fields.issuetype.name,
+        story_status: issue.fields.status.statusCategory.name,
+        project_id: issue.fields.project.id,
+        project_name: issue.fields.project.name,
+        status_name: issue.fields.status.name,
+        sprint_id: issue.fields.customfield_10018[0].id.toString(),
+        story_ac_hygiene: issue.fields.customfield_10157 ? "YES" : "NO",
+        original_estimate:
+          issue.fields.timetracking.originalEstimate || "Not added",
+        remaining_estimate:
+          issue.fields.timetracking.remainingEstimate || "Not added",
+        time_spent: issue.fields.timetracking.timeSpent || "Not added",
+        story_reviewers: issue.fields.customfield_10003
+          ? issue.fields.customfield_10003.length !== 0
+            ? issue.fields.customfield_10003
+                .map((r) => r.displayName)
                 .join(", ")
-              : "Reviewers not added"
-            : "Reviewers not added",
-          story_points:
-            issue.fields.customfield_10020 == null
-              ? 0
-              : issue.fields.customfield_10020,
-          updated: issue.fields.updated,
-          creator: issue.fields.creator.displayName,
-          assignee:
-            issue.fields.assignee !== null
-              ? issue.fields.assignee.displayName
-              : "Not added",
-          duedate:
-            issue.fields.duedate == null ? "Not added" : issue.fields.duedate,
-          sprint_start: issue.fields.customfield_10018[0].startDate
-            ? issue.fields.customfield_10018[0].startDate.substring(0, 10)
-            : "",
-          sprint_end: issue.fields.customfield_10018[0].endDate
-            ? issue.fields.customfield_10018[0].endDate.substring(0, 10)
-            : "",
-        };
-      })
-    : {};
+            : "Reviewers not added"
+          : "Reviewers not added",
+        story_points:
+          issue.fields.customfield_10020 == null
+            ? 0
+            : issue.fields.customfield_10020,
+        updated: issue.fields.updated,
+        creator: issue.fields.creator.displayName,
+        assignee:
+          issue.fields.assignee !== null
+            ? issue.fields.assignee.displayName
+            : "Not added",
+        duedate:
+          issue.fields.duedate == null ? "Not added" : issue.fields.duedate,
+        sprint_start: issue.fields.customfield_10018[0].startDate
+          ? issue.fields.customfield_10018[0].startDate.substring(0, 10)
+          : "",
+        sprint_end: issue.fields.customfield_10018[0].endDate
+          ? issue.fields.customfield_10018[0].endDate.substring(0, 10)
+          : "",
+        number_of_sub_tasks: 0,
+        completed_sub_tasks: 0,
+      };
+
+      story_subtask_map[story_id] = story;
+      issues.push(story);
+    } else if (issue.fields.issuetype.name === "Sub-task" && issue.fields.parent) {
+      const parent_id = issue.fields.parent.id;
+      const parent_story = story_subtask_map[parent_id];
+      if (parent_story) {
+        parent_story.number_of_sub_tasks++;
+        if (issue.fields.customfield_10020) {
+          parent_story.story_points += issue.fields.customfield_10020;
+        }
+        if (issue.fields.status.name === "Done") {
+          parent_story.completed_sub_tasks++;
+        }
+      }
+    }
+  }
+
   res.json({ issues });
-  console.log({ issues });
 });
+
 
 app.get("/sprint/:sprintId/progress", async (req, res) => {
   const sprint_id = req.params.sprintId;
@@ -376,8 +421,8 @@ app.get("/:boardID/stories", async (req, res) => {
           story_reviewers: issue.fields.customfield_10003
             ? issue.fields.customfield_10003.length !== 0
               ? issue.fields.customfield_10003
-                .map((r, i) => r.displayName)
-                .join(", ")
+                  .map((r, i) => r.displayName)
+                  .join(", ")
               : "Reviewers not added"
             : "Reviewers not added",
         };
@@ -778,45 +823,6 @@ app.get("/summaryDashboard/:sprintId/:sprintName/subtask", async (req, res) => {
   }
 });
 
-// function calculateStatusCategoryMap(issues) {
-//   const statusCategoryMap = {};
-
-//   issues.forEach((issue) => {
-//     if (issue.fields.issuetype.name === "Sub-task") {
-//       const key =
-//         issue.fields.parent.id + issue.fields.status.statusCategory.name;
-//       statusCategoryMap[key] = statusCategoryMap[key] || {
-//         issue_count: 0,
-//         assignee: "Not added",
-//       };
-//       statusCategoryMap[key].issue_count++;
-//       statusCategoryMap[key].assignee = issue.fields.assignee
-//         ? issue.fields.assignee.displayName
-//         : "Not added";
-//     }
-//   });
-
-//   return statusCategoryMap;
-// }
-
-// function generatePieChartData(statusCategoryMap) {
-//   const allPieChartData = [];
-
-//   Object.values(statusCategoryMap).forEach((value) => {
-//     const piedata = {};
-//     piedata[value.status_category_name] = value.issue_count;
-//     allPieChartData.push(piedata);
-//   });
-
-//   if (allPieChartData.length === 0) {
-//     allPieChartData.push({ "NO Subtask": 0 });
-//   }
-
-//   return allPieChartData;
-// }
-
-// Summary Dashboard subtask => Pie charts
-
 app.get("/summaryDashboard/:boardId/subtask/progress", async (req, res) => {
   const board_id = req.params.boardId;
   const allSprints = [];
@@ -1018,8 +1024,6 @@ function subtskCalaulation(all_pie_data, active_sprints) {
 // All active sprints for all boards
 app.post("/allboards/activesprints", async (req, res) => {
   const activeSprints = [];
-  let total_stories;
-  let done_stories;
   const all_pie_data = [];
   let response_data_obj;
 
