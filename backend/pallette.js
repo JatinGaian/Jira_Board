@@ -1,12 +1,12 @@
-const createIssue = require("./create-issue.js");
-const createProject = require("./create-project.js");
-const getIssueByID = require("./get-issue-by-id.js");
-const deleteIssueByID = require("./delete-issue-by-id.js");
-const getIssues = require("./get-issues.js");
-const getTransitions = require("./get-transitions.js");
-const getUsers = require("./get-users.js");
-const updateStatus = require("./update-status.js");
-const getProjects = require("./get-projects.js");
+const createIssue = require("./Not_in_use/create-issue.js");
+const createProject = require("./Not_in_use/create-project.js");
+const getIssueByID = require("./Not_in_use/get-issue-by-id.js");
+const deleteIssueByID = require("./Not_in_use/delete-issue-by-id.js");
+const getIssues = require("./Not_in_use/get-issues.js");
+const getTransitions = require("./Not_in_use/get-transitions.js");
+const getUsers = require("./Not_in_use/get-users.js");
+const updateStatus = require("./Not_in_use/update-status.js");
+const getProjects = require("./Not_in_use/get-projects.js");
 
 // Common call pattern 1: create project, create issue in that project, and move that
 // issue into in progress. This function will do exactly as described in the previous sentence

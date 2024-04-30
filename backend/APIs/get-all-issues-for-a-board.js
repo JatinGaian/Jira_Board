@@ -25,7 +25,7 @@ async function getBoardIssues(boardId) {
     return response.data;
   } catch (error) {
     console.log("error: ");
-    // console.log(error.response.data.errors);
+    console.log(error.response?.data?.errors ? error.response?.data?.errors :error.response );
   }
 }
 
