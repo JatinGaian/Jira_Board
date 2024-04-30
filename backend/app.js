@@ -23,20 +23,19 @@ app.get("/health", async (req, res) => {
   res.json({ message: "ok" });
 });
 
-
-
 // APIs for React
-
 
 // All boards
 app.get("/allBoards", async (req, res) => {
   try {
     const data = await get_all_boards();
-    let response = data ? data.map(board => ({
-      board_id: board.id,
-      board_name: board.name,
-      board_type: board.type
-    })) : [];
+    let response = data
+      ? data.map((board) => ({
+          board_id: board.id,
+          board_name: board.name,
+          board_type: board.type,
+        }))
+      : [];
 
     console.log(response);
     res.json(response);
@@ -45,8 +44,6 @@ app.get("/allBoards", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-
 
 app.get("/:boardId/allSprints", async (req, res) => {
   const board_id = req.params.boardId;
@@ -100,6 +97,10 @@ app.get("/alerts", async (req, res) => {
             : "Reviewers not added",
           // updated: new Date(issue.fields.updated).getTime(),
           updated: issue.fields.updated,
+          priority: issue.fields.priority.name,
+          time_original_estimate: issue?.fields?.timeoriginalestimate
+            ? issue.fields.timeoriginalestimate
+            : "Not added",
         };
       }
     });
@@ -208,7 +209,10 @@ app.get("/sprint/:sprintId/stories", async (req, res) => {
 
       story_subtask_map[story_id] = story;
       issues.push(story);
-    } else if (issue.fields.issuetype.name === "Sub-task" && issue.fields.parent) {
+    } else if (
+      issue.fields.issuetype.name === "Sub-task" &&
+      issue.fields.parent
+    ) {
       const parent_id = issue.fields.parent.id;
       const parent_story = story_subtask_map[parent_id];
       if (parent_story) {
@@ -225,7 +229,6 @@ app.get("/sprint/:sprintId/stories", async (req, res) => {
 
   res.json({ issues });
 });
-
 
 app.get("/sprint/:sprintId/progress", async (req, res) => {
   const sprint_id = req.params.sprintId;
@@ -320,36 +323,37 @@ app.get("/sprint/:sprintId/subtasks/progress", async (req, res) => {
 });
 
 app.get("/sprint/:sprintId/members", async (req, res) => {
-  const sprint_id = req.params.sprintId;
-  const data = await getSprintIssues(sprint_id);
-  const issues = data?.issues ? data.issues : [];
-  let names = new Set();
-  let members = [];
-  for (let issue of issues) {
-    if (issue.fields.issuetype.name !== "Story") {
+  try {
+    const sprint_id = req.params.sprintId;
+    const data = await getSprintIssues(sprint_id);
+    const issues = data?.issues ? data.issues : [];
+
+    let accountIdSet = new Set(); // Using a Set to ensure uniqueness
+    let members = [];
+
+    for (let issue of issues) {
       if (issue.fields.assignee) {
-        let name = issue.fields.assignee.displayName;
-        if (!names.has(name)) {
+        let accountId = issue.fields.assignee.accountId.toString();
+        if (!accountIdSet.has(accountId)) {
           let member = {
-            sprint_member_account_id:
-              issue.fields.assignee.accountId.toString(),
+            sprint_member_account_id: accountId,
             sprint_member_full_name: issue.fields.assignee.displayName,
             sprint_member_card_name: issue.fields.assignee.displayName
               .substring(0, 2)
               .toUpperCase(),
           };
           members.push(member);
-          names.add(name);
+          accountIdSet.add(accountId);
         }
       }
     }
+
+    res.json({ members });
+    // console.log({ members });
+  } catch (error) {
+    console.error("Error fetching sprint members:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
-  res.json({
-    members,
-  });
-  console.log({
-    members,
-  });
 });
 
 // APIs for PI
