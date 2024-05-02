@@ -827,6 +827,7 @@ app.get("/summaryDashboard/:sprintId/:sprintName/subtask", async (req, res) => {
   }
 });
 
+// Summary dashboard subtask progressal
 app.get("/summaryDashboard/:boardId/subtask/progress", async (req, res) => {
   const board_id = req.params.boardId;
   const allSprints = [];
@@ -1034,7 +1035,8 @@ app.post("/allboards/activesprints", async (req, res) => {
   try {
     const data = req.body;
     // console.log(data);
-    const all_boards = data.filter((board) => board.board_type === "scrum");
+    // const all_boards = data.filter((board) => board.board_type === "scrum");
+    const all_boards = data;
 
     for (let i = 0; i < all_boards.length; i++) {
       const board_id = all_boards[i].board_id;
@@ -1109,6 +1111,11 @@ app.post("/allboards/activesprints", async (req, res) => {
                 ? issue.fields.status.statusCategory.name === "Done"
                 : []
             ).length,
+            in_progress_stories: stories.filter((issue) =>
+            issue.fields.status?.statusCategory?.name
+              ? issue.fields.status.statusCategory.name === "In Progress"
+              : []
+          ).length,
           })),
           // subtask: subtskCalaulation(all_pie_data, active_sprints),
         };
