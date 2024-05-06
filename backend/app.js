@@ -10,6 +10,8 @@ const { isToday } = require("./APIs/utils");
 const get_board_metadata = require("./APIs/get_board_metadata");
 const get_project_data = require("./APIs/get_project_data");
 const get_all_boards = require("./APIs/get_all_boards");
+const fs = require('fs').promises;
+
 
 const app = express();
 const PORT = 8080;
@@ -37,7 +39,7 @@ app.get("/allBoards", async (req, res) => {
         }))
       : [];
 
-    console.log(response);
+    // // conole.log(response);
     res.json(response);
   } catch (error) {
     console.error("Error fetching boards:", error);
@@ -49,14 +51,14 @@ app.get("/:boardId/allSprints", async (req, res) => {
   const board_id = req.params.boardId;
   const data = await getSprints(board_id);
   let sprints = data?.values ? data.values : [];
-  // console.log(sprints);
+  // conole.log(sprints);
   res.json(sprints);
 });
 
 // ALerts
 app.get("/alerts", async (req, res) => {
   const data = await getAlerts();
-  // console.log(data, "data");
+  // conole.log(data, "data");
   const issues = data?.issues ? data.issues : [];
   const alerts_data = issues
     .filter((issue) => issue.fields.issuetype.name === "Story")
@@ -104,16 +106,16 @@ app.get("/alerts", async (req, res) => {
         };
       }
     });
-  // console.log(alerts_data);
+  // conole.log(alerts_data);
   res.json(alerts_data);
-  console.log(alerts_data);
+  // // conole.log(alerts_data);
 });
 
 app.get("/comments", async (req, res) => {
   const body = req.params.body;
   const issues = await getComments(body);
   // const issues = data.issues || [];
-  // console.log("no of issues: " + issues.length);
+  // conole.log("no of issues: " + issues.length);
   const issuesHavingStatusComments = issues.filter((issue) => {
     const comments =
       (issue.fields.comment && issue.fields.comment.comments) || [];
@@ -142,14 +144,14 @@ app.get("/:boardId/activeSprint", async (req, res) => {
       (sprint) => sprint.state === "closed"
     );
     res.json({ active_sprint: closed_sprints[closed_sprints.length - 1] });
-    console.log({ active_sprint: closed_sprints[closed_sprints.length - 1] });
+    // // conole.log({ active_sprint: closed_sprints[closed_sprints.length - 1] });
   } else {
     res.json({
       active_sprint: active_sprint[0],
     });
-    console.log({
-      active_sprint: active_sprint[0],
-    });
+    // // conole.log({
+      // active_sprint: active_sprint[0],
+    // });
   }
 });
 
@@ -252,7 +254,7 @@ app.get("/sprint/:sprintId/progress", async (req, res) => {
               ? issue.fields.assignee.displayName
               : "Not added",
         };
-        // console.log("story_subtask_map", story_subtask_map);
+        // conole.log("story_subtask_map", story_subtask_map);
       }
     }
   }
@@ -277,9 +279,9 @@ app.get("/sprint/:sprintId/progress", async (req, res) => {
   res.json({
     sprint_progress: values,
   });
-  console.log({
-    sprint_progress: values,
-  });
+  // // conole.log({
+  //   sprint_progress: values,
+  // });
 });
 
 app.get("/sprint/:sprintId/subtasks/progress", async (req, res) => {
@@ -319,7 +321,7 @@ app.get("/sprint/:sprintId/subtasks/progress", async (req, res) => {
   res.json({
     values,
   });
-  console.log({ values });
+  // // conole.log({ values });
 });
 
 app.get("/sprint/:sprintId/members", async (req, res) => {
@@ -349,7 +351,7 @@ app.get("/sprint/:sprintId/members", async (req, res) => {
     }
 
     res.json({ members });
-    // console.log({ members });
+    // conole.log({ members });
   } catch (error) {
     console.error("Error fetching sprint members:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -380,7 +382,7 @@ app.get("/:boardId/sprints", async (req, res) => {
     if (sprint) return sprint;
   });
   res.json(sprints);
-  console.log(sprints);
+  // // conole.log(sprints);
 });
 
 app.get("/:boardID/stories", async (req, res) => {
@@ -438,9 +440,9 @@ app.get("/:boardID/stories", async (req, res) => {
   res.json({
     stories,
   });
-  console.log({
-    stories,
-  });
+  // // conole.log({
+  //   stories,
+  // });
 });
 // for understanding
 // if variable==100 ? 100 < x ? 10 : null : not
@@ -511,9 +513,9 @@ app.get("/:boardID/sprint/progress", async (req, res) => {
   res.json({
     sprint_progress: values,
   });
-  console.log({
-    sprint_progress: values,
-  });
+  // // conole.log({
+  //   sprint_progress: values,
+  // });
 });
 
 // This API is to fetch all story progress
@@ -565,9 +567,9 @@ app.get("/:boardID/sprint/story/progress", async (req, res) => {
   res.json({
     values,
   });
-  console.log({
-    values,
-  });
+  // // conole.log({
+  //   values,
+  // });
 });
 
 // This API is to fetch all sprint members
@@ -605,7 +607,7 @@ app.get("/:boardID/sprint/members", async (req, res) => {
             };
             members.push(member);
             names.add(name);
-            // console.log(names);
+            // conole.log(names);
           }
         }
       }
@@ -614,9 +616,9 @@ app.get("/:boardID/sprint/members", async (req, res) => {
   res.json({
     members,
   });
-  console.log({
-    members,
-  });
+  // // conole.log({
+  //   members,
+  // });
 });
 
 // Summary dashboard
@@ -734,7 +736,7 @@ app.post("/summaryview", async (req, res) => {
     });
 
     res.json(responseObj); // Sending transformed data in the response
-    console.log([responseObj]);
+    // // conole.log([responseObj]);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -820,7 +822,7 @@ app.get("/summaryDashboard/:sprintId/:sprintName/subtask", async (req, res) => {
     });
 
     res.json([{ [sprintName]: responseArray }]); // Sending transformed data in the response
-    console.log([{ [sprintName]: responseArray }]);
+    // // conole.log([{ [sprintName]: responseArray }]);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -837,7 +839,7 @@ app.get("/summaryDashboard/:boardId/subtask/progress", async (req, res) => {
     const data = await getSprints(board_id);
 
     const sprints_data = data?.values ? data.values : [];
-    // console.log(sprints_data, "sprints_data");
+    // conole.log(sprints_data, "sprints_data");
 
     for (let i = 0; i < sprints_data.length; i++) {
       const sprint_id = sprints_data[i].id;
@@ -931,7 +933,7 @@ app.get("/summaryDashboard/:boardId/subtask/progress", async (req, res) => {
       Object.entries(responseObj).reverse()
     );
     res.json([response_data_obj]); // Sending transformed data in the response
-    console.log([response_data_obj]);
+    // // conole.log([response_data_obj]);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -950,9 +952,9 @@ app.get("/:boardId/project", async (req, res) => {
 
     let project_key =
       project_data[0] !== null ? project_data[0] : project_data[1];
-    // console.log(project_key);
+    // conole.log(project_key);
     const response = await get_project_data(project_key);
-    // console.log(response);
+    // conole.log(response);
     const project = {
       project_name: response?.name ? response.name : "",
       project_lead: response?.lead.displayName ? response.lead.displayName : "",
@@ -960,7 +962,7 @@ app.get("/:boardId/project", async (req, res) => {
 
     res.json({ project });
     debugger;
-    console.log({ project });
+    // conole.log({ project });
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -1022,24 +1024,134 @@ function subtskCalaulation(all_pie_data, active_sprints) {
   });
   response_data_obj = Object.fromEntries(Object.entries(responseObj).reverse());
   // activeSprints[sprint].sprints.push({"SubtaskData" :response_data_obj})
-  // console.log([response_data_obj], "response_data_obj");
+  // // conole.log([response_data_obj], "response_data_obj");
   return [response_data_obj];
 }
 
 // All active sprints for all boards
-app.post("/allboards/activesprints", async (req, res) => {
-  const activeSprints = [];
-  const all_pie_data = [];
-  let response_data_obj;
+// app.post("/allboards/activesprints", async (req, res) => {
+//   const activeSprints = [];
+//   const all_pie_data = [];
+//   let response_data_obj;
 
+//   try {
+//     const data = req.body;
+//     // // conole.log(data);
+//     // const all_boards = data.filter((board) => board.board_type === "scrum");
+//     const all_boards = data;
+
+//     for (let i = 0; i < all_boards.length; i++) {
+//       const board_id = all_boards[i].board_id;
+//       const board_name = all_boards[i].board_name;
+//       const board_type = all_boards[i].board_type;
+//       const sprintsData = await getSprints(board_id);
+//       const active_sprints = sprintsData?.values
+//         ? sprintsData.values.filter((sprint) => sprint.state === "active")
+//         : [];
+
+//       // conole.log(active_sprints);
+//       if (active_sprints.length === 0) {
+//         continue;
+//       }
+
+//       for (let i = 0; i < active_sprints.length; i++) {
+//         const data = await getSprintIssues(active_sprints[i].id);
+//         let stories = data.issues.filter(
+//           (issue) => issue.fields.issuetype.name === "Story"
+//         );
+//         // subtask piechart
+//         const status_category_map = {};
+//         const issues = data?.issues ? data.issues : [];
+//         const sub_tasks = issues
+//           .filter((i) => i.fields.issuetype.name === "Sub-task")
+//           .map((i) => {
+//             return {
+//               issue_id: i.id,
+//               issue_type: i.fields.issuetype.name,
+//               story_id: i.fields.parent.id,
+//               status_category_name: i.fields.status.statusCategory.name,
+//               assignee: i.fields.assignee
+//                 ? i.fields.assignee.displayName
+//                 : "Not added",
+//               issue_name: i.fields.summary,
+//             };
+//           });
+//         for (let subtask of sub_tasks) {
+//           const key = subtask.story_id + subtask.status_category_name;
+//           if (!status_category_map[key]) {
+//             status_category_map[key] = {
+//               story_id: subtask.story_id,
+//               status_category_name: subtask.status_category_name,
+//               issue_count: 1,
+//               assignee: subtask.assignee,
+//             };
+//           } else {
+//             status_category_map[key].issue_count++;
+//           }
+//         }
+//         values = Object.values(status_category_map);
+//         all_pie_data.push({ values });
+
+//         // active sprints
+//         const boardData = {
+//           board_id: board_id,
+//           board_name: board_name,
+//           board_type: board_type,
+//           sprints: active_sprints.map((sprint) => ({
+//             sprint_id: sprint.id,
+//             sprint_name: sprint.name,
+//             sprint_status: sprint.state,
+//             sprint_start: sprint.startDate ? sprint.startDate : "No date added",
+//             sprint_end: sprint.endDate ? sprint.endDate : "No date added",
+//             total_stories: stories.filter((issue) =>
+//               issue.fields?.issuetype?.name
+//                 ? issue.fields.issuetype.name === "Story"
+//                 : []
+//             ).length,
+//             done_stories: stories.filter((issue) =>
+//               issue.fields.status?.statusCategory?.name
+//                 ? issue.fields.status.statusCategory.name === "Done"
+//                 : []
+//             ).length,
+//             in_progress_stories: stories.filter((issue) =>
+//             issue.fields.status?.statusCategory?.name
+//               ? issue.fields.status.statusCategory.name === "In Progress"
+//               : []
+//           ).length,
+//           })),
+//           // subtask: subtskCalaulation(all_pie_data, active_sprints),
+//         };
+
+//         activeSprints.push(boardData);
+//       }
+//     }
+
+//     res.json(activeSprints); // Sending transformed data in the response
+//     // // conole.log(activeSprints, "response");
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+app.post("/allboards/activesprints", async (req, res) => {
   try {
     const data = req.body;
-    // console.log(data);
-    // const all_boards = data.filter((board) => board.board_type === "scrum");
     const all_boards = data;
+
+    const activeSprints = [];
+    const processedBoardIds = new Set(); // Maintain a set of processed board IDs
 
     for (let i = 0; i < all_boards.length; i++) {
       const board_id = all_boards[i].board_id;
+
+      // Skip processing if the board ID has already been processed
+      if (processedBoardIds.has(board_id)) {
+        continue;
+      }
+
+      // Mark the current board ID as processed
+      processedBoardIds.add(board_id);
+
       const board_name = all_boards[i].board_name;
       const board_type = all_boards[i].board_type;
       const sprintsData = await getSprints(board_id);
@@ -1047,92 +1159,134 @@ app.post("/allboards/activesprints", async (req, res) => {
         ? sprintsData.values.filter((sprint) => sprint.state === "active")
         : [];
 
-      // console.log(active_sprints);
       if (active_sprints.length === 0) {
         continue;
       }
 
-      for (let i = 0; i < active_sprints.length; i++) {
-        const data = await getSprintIssues(active_sprints[i].id);
-        let stories = data.issues.filter(
+      // Process active sprints
+      const boardData = {
+        board_id: board_id,
+        board_name: board_name,
+        board_type: board_type,
+        sprints: [],
+      };
+
+      for (let j = 0; j < active_sprints.length; j++) {
+        const sprintData = await getSprintIssues(active_sprints[j].id);
+        const stories = sprintData.issues.filter(
           (issue) => issue.fields.issuetype.name === "Story"
         );
-        // subtask piechart
-        const status_category_map = {};
-        const issues = data?.issues ? data.issues : [];
-        const sub_tasks = issues
-          .filter((i) => i.fields.issuetype.name === "Sub-task")
-          .map((i) => {
-            return {
-              issue_id: i.id,
-              issue_type: i.fields.issuetype.name,
-              story_id: i.fields.parent.id,
-              status_category_name: i.fields.status.statusCategory.name,
-              assignee: i.fields.assignee
-                ? i.fields.assignee.displayName
-                : "Not added",
-              issue_name: i.fields.summary,
-            };
-          });
-        for (let subtask of sub_tasks) {
-          const key = subtask.story_id + subtask.status_category_name;
-          if (!status_category_map[key]) {
-            status_category_map[key] = {
-              story_id: subtask.story_id,
-              status_category_name: subtask.status_category_name,
-              issue_count: 1,
-              assignee: subtask.assignee,
-            };
-          } else {
-            status_category_map[key].issue_count++;
-          }
-        }
-        values = Object.values(status_category_map);
-        all_pie_data.push({ values });
 
-        // active sprints
-        const boardData = {
-          board_id: board_id,
-          board_name: board_name,
-          board_type: board_type,
-          sprints: active_sprints.map((sprint) => ({
-            sprint_id: sprint.id,
-            sprint_name: sprint.name,
-            sprint_status: sprint.state,
-            sprint_start: sprint.startDate ? sprint.startDate : "No date added",
-            sprint_end: sprint.endDate ? sprint.endDate : "No date added",
-            total_stories: stories.filter((issue) =>
-              issue.fields?.issuetype?.name
-                ? issue.fields.issuetype.name === "Story"
-                : []
-            ).length,
-            done_stories: stories.filter((issue) =>
-              issue.fields.status?.statusCategory?.name
-                ? issue.fields.status.statusCategory.name === "Done"
-                : []
-            ).length,
-            in_progress_stories: stories.filter((issue) =>
-            issue.fields.status?.statusCategory?.name
-              ? issue.fields.status.statusCategory.name === "In Progress"
-              : []
-          ).length,
-          })),
-          // subtask: subtskCalaulation(all_pie_data, active_sprints),
-        };
+        const total_stories = stories.length;
+        const done_stories = stories.filter((issue) =>
+          issue.fields.status?.statusCategory?.name === "Done"
+        ).length;
+        const in_progress_stories = stories.filter((issue) =>
+          issue.fields.status?.statusCategory?.name === "In Progress"
+        ).length;
 
-        activeSprints.push(boardData);
+        boardData.sprints.push({
+          sprint_id: active_sprints[j].id,
+          sprint_name: active_sprints[j].name,
+          sprint_status: "active",
+          sprint_start: active_sprints[j].startDate ? active_sprints[j].startDate : "No date added",
+          sprint_end: active_sprints[j].endDate ? active_sprints[j].endDate : "No date added",
+          total_stories: total_stories,
+          done_stories: done_stories,
+          in_progress_stories: in_progress_stories,
+        });
       }
+
+      activeSprints.push(boardData);
     }
 
-    res.json(activeSprints); // Sending transformed data in the response
-    console.log(activeSprints, "response");
+    res.json(activeSprints);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
+
+
+
+// // //
+
+// Read data from JSON file
+app.get('/fav/boards', async (req, res) => {
+  try {
+    const data = await fs.readFile('board.json', 'utf8');
+    res.json(JSON.parse(data));
+    // // conole.log(JSON.parse(data));
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update data in JSON file
+app.post("/add/favboard", async (req, res) => {
+  try {
+    const newBoard = req.body;
+
+    // Check if the newBoard object is valid
+    if (!newBoard || !newBoard.board_id) {
+      return res
+        .status(400)
+        .json({ error: "Invalid request: Missing board_id" });
+    }
+
+    // Read existing data from file
+    let existingData = await fs.readFile("board.json", "utf8");
+    existingData = JSON.parse(existingData);
+
+    // Check if the board already exists
+    const index = existingData.findIndex(
+      (item) => item.board_id === newBoard.board_id
+    );
+    if (index === -1) {
+      // Board not found, add it
+      existingData.push(newBoard);
+      await fs.writeFile("board.json", JSON.stringify(existingData));
+      return res.json({ message: "Board added to favorites" });
+    } else {
+      // Board already exists, return success message
+      return res.json({ message: "Board already in favorites" });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+// Delete data from JSON file
+app.delete('/delete/favboard/:board_id', async (req, res) => {
+  try {
+    let boardId = req.params.board_id;
+    console.log(boardId);
+    let existingData = await fs.readFile('board.json', 'utf8');
+    existingData = JSON.parse(existingData);
+    
+    // Filter out the board with the specified board_id
+    let updatedData = existingData.filter(item => item.board_id != boardId);
+    // 161 != 162  
+    console.log(updatedData);
+    // Check if any board was removed
+    if (existingData.length !== updatedData.length) {
+      // Write the updated data back to the file
+      await fs.writeFile('board.json', JSON.stringify(updatedData));
+      res.json(updatedData); // Send back the updated list of boards
+    } else {
+
+      res.status(404).json({ error: 'Data not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 // Server running in port
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}...`);
+  // // conole.log(`Server running on port ${PORT}...`);
 });
