@@ -11,7 +11,8 @@ const get_board_metadata = require("./APIs/get_board_metadata");
 const get_project_data = require("./APIs/get_project_data");
 const get_all_boards = require("./APIs/get_all_boards");
 const get_summaryboards = require("./summaryBoards/getSummaryboards");
-const getGithubData = require("./APIs/get-github_data");
+const getGithubCommits = require("./APIs/get-github_commits");
+const getGithubPulls = require("./APIs/get-github_pulls");
 // const summaryJsonpath = require("./boardsJson/summaryBoards.json")
 const fs = require("fs").promises;
 
@@ -1378,96 +1379,144 @@ function isTodayOrYesterday(dateStr) {
   );
 }
 
+// Helper function to check if a date is today or yesterday
+function isTodayOrYesterday(dateStr) {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  return (
+    date.toDateString() === today.toDateString() ||
+    date.toDateString() === yesterday.toDateString()
+  );
+}
+
 app.get("/sprint/:sprintId/gitdata", async (req, res) => {
   try {
     const sprint_id = req.params.sprintId;
     const response = await getSprintIssues(sprint_id);
-    const github_response = [];
 
     const story_subtask_map = {};
     const issues = [];
 
     // Filter and process issues
-    (response?.issues || []).forEach((issue) => {
+    for (let issue of response?.issues || []) {
       if (isTodayOrYesterday(issue.fields.updated)) {
-        if (issue.fields.issuetype.name === "Story") {
-          const story_id = issue.id;
-          const story = {
-            story_id: story_id,
-            story_name: issue.fields.summary,
-            story_type: issue.fields.issuetype.name,
-            story_status: issue.fields.status.statusCategory.name,
-            project_id: issue.fields.project.id,
-            project_name: issue.fields.project.name,
-            status_name: issue.fields.status.name,
-            sprint_id: issue.fields.customfield_10018[0].id.toString(),
-            story_ac_hygiene: issue.fields.customfield_10157 ? "YES" : "NO",
-            original_estimate:
-              issue.fields.timetracking.originalEstimate || "Not added",
-            remaining_estimate:
-              issue.fields.timetracking.remainingEstimate || "Not added",
-            time_spent: issue.fields.timetracking.timeSpent || "Not added",
-            story_reviewers: issue.fields.customfield_10003
-              ? issue.fields.customfield_10003.length !== 0
-                ? issue.fields.customfield_10003
-                    .map((r) => r.displayName)
-                    .join(", ")
-                : "Reviewers not added"
-              : "Reviewers not added",
-            story_points:
-              issue.fields.customfield_10020 == null
-                ? 0
-                : issue.fields.customfield_10020,
-            updated: issue.fields.updated,
-            creator: issue.fields.creator.displayName,
-            assignee: issue.fields.assignee
-              ? issue.fields.assignee.displayName
-              : "Not added",
-            duedate: issue.fields.duedate ? issue.fields.duedate : "Not added",
-            sprint_start: issue.fields.customfield_10018[0].startDate
-              ? issue.fields.customfield_10018[0].startDate.substring(0, 10)
-              : "",
-            sprint_end: issue.fields.customfield_10018[0].endDate
-              ? issue.fields.customfield_10018[0].endDate.substring(0, 10)
-              : "",
-            number_of_sub_tasks: 0,
-            completed_sub_tasks: 0,
-          };
+        const { fields } = issue;
+        const {
+          issuetype,
+          status,
+          project,
+          customfield_10018,
+          customfield_10157,
+          timetracking,
+          customfield_10003,
+          customfield_10020,
+          creator,
+          assignee,
+          duedate,
+        } = fields;
 
-          story_subtask_map[story_id] = story;
-          issues.push(story);
-        } else if (
-          issue.fields.issuetype.name === "Sub-task" &&
-          issue.fields.parent
-        ) {
+        let story = {
+          story_id: issue.id,
+          story_name: fields.summary,
+          story_type: issuetype.name,
+          story_status: status.statusCategory.name,
+          project_id: project.id,
+          project_name: project.name,
+          status_name: status.name,
+          sprint_id: customfield_10018[0].id.toString(),
+          sprint_name: customfield_10018[0].name,
+          story_ac_hygiene: customfield_10157 ? "YES" : "NO",
+          original_estimate: timetracking.originalEstimate || "Not added",
+          remaining_estimate: timetracking.remainingEstimate || "Not added",
+          time_spent: timetracking.timeSpent || "Not added",
+          story_reviewers: customfield_10003
+            ? customfield_10003.length !== 0
+              ? customfield_10003.map((r) => r.displayName).join(", ")
+              : "Reviewers not added"
+            : "Reviewers not added",
+          story_points: customfield_10020 == null ? 0 : customfield_10020,
+          updated: fields.updated,
+          creator: creator.displayName,
+          assignee: assignee ? assignee.displayName : "Not added",
+          duedate: duedate ? duedate : "Not added",
+          sprint_start: customfield_10018[0].startDate
+            ? customfield_10018[0].startDate.substring(0, 10)
+            : "",
+          sprint_end: customfield_10018[0].endDate
+            ? customfield_10018[0].endDate.substring(0, 10)
+            : "",
+          number_of_sub_tasks: 0,
+          completed_sub_tasks: 0,
+        };
+
+        if (issuetype.name === "Sub-task" && issue.fields.parent) {
           const parent_id = issue.fields.parent.id;
           const parent_story = story_subtask_map[parent_id];
           if (parent_story) {
             parent_story.number_of_sub_tasks++;
-            if (issue.fields.customfield_10020) {
-              parent_story.story_points += issue.fields.customfield_10020;
+            if (customfield_10020) {
+              parent_story.story_points += customfield_10020;
             }
-            if (issue.fields.status.name === "Done") {
+            if (status.name === "Done") {
               parent_story.completed_sub_tasks++;
             }
           }
+        } else {
+          story_subtask_map[issue.id] = story;
+          issues.push(story);
         }
       }
-    });
+    }
 
     // Sort the filtered issues by the "updated" field in descending order
     issues.sort((a, b) => new Date(b.updated) - new Date(a.updated));
-    issues.forEach((story) => {
-      let response = getGithubData(story.story_id);
-      console.log(response);
-      let respose_data = {
-        assignee : story.assignee,
-        commits : [response]
-      };
-      github_response.push(response)
-    });
 
-    res.json({ github_response });
+    // Fetch GitHub data for each story and construct the response
+    const githubResponses = await Promise.all(
+      issues.map(async (story) => {
+        const githubCommits = await getGithubCommits(story.story_id);
+        const githubPulls = await getGithubPulls(story.story_id);
+
+        const commits =
+          githubCommits?.detail?.flatMap((detail) =>
+            detail.repositories.flatMap((repo) =>
+              repo.commits.map((commit) => ({
+                message: commit.message,
+                authorTimestamp: commit.authorTimestamp,
+                repositoryName: repo.name,
+                repositoryUrl: repo.url,
+                filesChanged: commit.files.length,
+                commitUrl: commit.url,
+              }))
+            )
+          ) || [];
+        const pulls =
+          githubPulls?.detail?.flatMap((detail) =>
+            detail.pullRequests.map((pullreq) => ({
+              sourceBranch: pullreq?.source?.branch || "",
+              sourceBranchUrl: pullreq?.source?.url || "",
+              destinationBranch: pullreq?.destination?.branch || "",
+              destinationBranchUrl: pullreq?.destination?.url || "",
+              lastUpdate: pullreq?.lastUpdate,
+              repositoryName: pullreq?.repositoryName,
+              repositoryUrl: pullreq?.repositoryUrl,
+            }))
+          ) || [];
+        return {
+          assignee: story.assignee,
+          sprint_name: story.sprint_name,
+          sprint_id: sprint_id,
+          story_name: story.story_name,
+          story_id: story.story_id,
+          commits,
+          pulls,
+        };
+      })
+    );
+
+    res.json({ githubResponses });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
