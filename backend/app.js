@@ -10,8 +10,10 @@ const { isToday } = require("./APIs/utils");
 const get_board_metadata = require("./APIs/get_board_metadata");
 const get_project_data = require("./APIs/get_project_data");
 const get_all_boards = require("./APIs/get_all_boards");
-const fs = require('fs').promises;
-
+const get_summaryboards = require("./summaryBoards/getSummaryboards");
+const getGithubData = require("./APIs/get-github_data");
+// const summaryJsonpath = require("./boardsJson/summaryBoards.json")
+const fs = require("fs").promises;
 
 const app = express();
 const PORT = 8080;
@@ -150,7 +152,7 @@ app.get("/:boardId/activeSprint", async (req, res) => {
       active_sprint: active_sprint[0],
     });
     // // conole.log({
-      // active_sprint: active_sprint[0],
+    // active_sprint: active_sprint[0],
     // });
   }
 });
@@ -1178,19 +1180,23 @@ app.post("/allboards/activesprints", async (req, res) => {
         );
 
         const total_stories = stories.length;
-        const done_stories = stories.filter((issue) =>
-          issue.fields.status?.statusCategory?.name === "Done"
+        const done_stories = stories.filter(
+          (issue) => issue.fields.status?.statusCategory?.name === "Done"
         ).length;
-        const in_progress_stories = stories.filter((issue) =>
-          issue.fields.status?.statusCategory?.name === "In Progress"
+        const in_progress_stories = stories.filter(
+          (issue) => issue.fields.status?.statusCategory?.name === "In Progress"
         ).length;
 
         boardData.sprints.push({
           sprint_id: active_sprints[j].id,
           sprint_name: active_sprints[j].name,
           sprint_status: "active",
-          sprint_start: active_sprints[j].startDate ? active_sprints[j].startDate : "No date added",
-          sprint_end: active_sprints[j].endDate ? active_sprints[j].endDate : "No date added",
+          sprint_start: active_sprints[j].startDate
+            ? active_sprints[j].startDate
+            : "No date added",
+          sprint_end: active_sprints[j].endDate
+            ? active_sprints[j].endDate
+            : "No date added",
           total_stories: total_stories,
           done_stories: done_stories,
           in_progress_stories: in_progress_stories,
@@ -1207,19 +1213,16 @@ app.post("/allboards/activesprints", async (req, res) => {
   }
 });
 
-
-
-
 // // //
 
 // Read data from JSON file
-app.get('/fav/boards', async (req, res) => {
+app.get("/fav/boards", async (req, res) => {
   try {
-    const data = await fs.readFile('board.json', 'utf8');
+    const data = await fs.readFile("board.json", "utf8");
     res.json(JSON.parse(data));
     // // conole.log(JSON.parse(data));
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -1258,33 +1261,218 @@ app.post("/add/favboard", async (req, res) => {
   }
 });
 
-
 // Delete data from JSON file
-app.delete('/delete/favboard/:board_id', async (req, res) => {
+app.delete("/delete/favboard/:board_id", async (req, res) => {
   try {
     let boardId = req.params.board_id;
     console.log(boardId);
-    let existingData = await fs.readFile('board.json', 'utf8');
+    let existingData = await fs.readFile("board.json", "utf8");
     existingData = JSON.parse(existingData);
-    
+
     // Filter out the board with the specified board_id
-    let updatedData = existingData.filter(item => item.board_id != boardId);
-    // 161 != 162  
+    let updatedData = existingData.filter((item) => item.board_id != boardId);
+    // 161 != 162
     console.log(updatedData);
     // Check if any board was removed
     if (existingData.length !== updatedData.length) {
       // Write the updated data back to the file
-      await fs.writeFile('board.json', JSON.stringify(updatedData));
+      await fs.writeFile("board.json", JSON.stringify(updatedData));
       res.json(updatedData); // Send back the updated list of boards
     } else {
-
-      res.status(404).json({ error: 'Data not found' });
+      res.status(404).json({ error: "Data not found" });
     }
   } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
+// summary boards from json
+// app.get("/summary/boards", async (req, res) => {
+//   const data = await get_summaryboards();
+//   res.json(data)
+// });
+
+// get summary boards
+app.get("/summary/activeboards", async (req, res) => {
+  try {
+    const data = await fs.readFile("summaryBoards.json", "utf8");
+    res.json(JSON.parse(data));
+    // // conole.log(JSON.parse(data));
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// add summary boards
+app.post("/add/summaryboard", async (req, res) => {
+  try {
+    const newBoard = req.body;
+
+    // Check if the newBoard object is valid
+    if (!newBoard || !newBoard.board_id) {
+      return res
+        .status(400)
+        .json({ error: "Invalid request: Missing board_id" });
+    }
+
+    // Read existing data from file
+    let existingData = await fs.readFile("summaryBoards.json", "utf8");
+    existingData = JSON.parse(existingData);
+
+    // Check if the board already exists
+    const index = existingData.findIndex(
+      (item) => item.board_id === newBoard.board_id
+    );
+    if (index === -1) {
+      // Board not found, add it
+      existingData.push(newBoard);
+      await fs.writeFile("summaryBoards.json", JSON.stringify(existingData));
+      return res.json({ message: "Board added to favorites" });
+    } else {
+      // Board already exists, return success message
+      return res.json({ message: "Board already in favorites" });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// remove summary board
+app.delete("/delete/summary/:board_id", async (req, res) => {
+  try {
+    let boardId = req.params.board_id;
+    console.log(boardId);
+    let existingData = await fs.readFile("summaryBoards.json", "utf8");
+    existingData = JSON.parse(existingData);
+
+    // Filter out the board with the specified board_id
+    let updatedData = existingData.filter((item) => item.board_id != boardId);
+    // 161 != 162
+    console.log(updatedData);
+    // Check if any board was removed
+    if (existingData.length !== updatedData.length) {
+      // Write the updated data back to the file
+      await fs.writeFile("summaryBoards.json", JSON.stringify(updatedData));
+      res.json(updatedData); // Send back the updated list of boards
+    } else {
+      res.status(404).json({ error: "Data not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// API to fetch commits and pull request
+
+// Helper function to check if a date is today or yesterday
+function isTodayOrYesterday(dateStr) {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  return (
+    date.toDateString() === today.toDateString() ||
+    date.toDateString() === yesterday.toDateString()
+  );
+}
+
+app.get("/sprint/:sprintId/gitdata", async (req, res) => {
+  try {
+    const sprint_id = req.params.sprintId;
+    const response = await getSprintIssues(sprint_id);
+    const github_response = [];
+
+    const story_subtask_map = {};
+    const issues = [];
+
+    // Filter and process issues
+    (response?.issues || []).forEach((issue) => {
+      if (isTodayOrYesterday(issue.fields.updated)) {
+        if (issue.fields.issuetype.name === "Story") {
+          const story_id = issue.id;
+          const story = {
+            story_id: story_id,
+            story_name: issue.fields.summary,
+            story_type: issue.fields.issuetype.name,
+            story_status: issue.fields.status.statusCategory.name,
+            project_id: issue.fields.project.id,
+            project_name: issue.fields.project.name,
+            status_name: issue.fields.status.name,
+            sprint_id: issue.fields.customfield_10018[0].id.toString(),
+            story_ac_hygiene: issue.fields.customfield_10157 ? "YES" : "NO",
+            original_estimate:
+              issue.fields.timetracking.originalEstimate || "Not added",
+            remaining_estimate:
+              issue.fields.timetracking.remainingEstimate || "Not added",
+            time_spent: issue.fields.timetracking.timeSpent || "Not added",
+            story_reviewers: issue.fields.customfield_10003
+              ? issue.fields.customfield_10003.length !== 0
+                ? issue.fields.customfield_10003
+                    .map((r) => r.displayName)
+                    .join(", ")
+                : "Reviewers not added"
+              : "Reviewers not added",
+            story_points:
+              issue.fields.customfield_10020 == null
+                ? 0
+                : issue.fields.customfield_10020,
+            updated: issue.fields.updated,
+            creator: issue.fields.creator.displayName,
+            assignee: issue.fields.assignee
+              ? issue.fields.assignee.displayName
+              : "Not added",
+            duedate: issue.fields.duedate ? issue.fields.duedate : "Not added",
+            sprint_start: issue.fields.customfield_10018[0].startDate
+              ? issue.fields.customfield_10018[0].startDate.substring(0, 10)
+              : "",
+            sprint_end: issue.fields.customfield_10018[0].endDate
+              ? issue.fields.customfield_10018[0].endDate.substring(0, 10)
+              : "",
+            number_of_sub_tasks: 0,
+            completed_sub_tasks: 0,
+          };
+
+          story_subtask_map[story_id] = story;
+          issues.push(story);
+        } else if (
+          issue.fields.issuetype.name === "Sub-task" &&
+          issue.fields.parent
+        ) {
+          const parent_id = issue.fields.parent.id;
+          const parent_story = story_subtask_map[parent_id];
+          if (parent_story) {
+            parent_story.number_of_sub_tasks++;
+            if (issue.fields.customfield_10020) {
+              parent_story.story_points += issue.fields.customfield_10020;
+            }
+            if (issue.fields.status.name === "Done") {
+              parent_story.completed_sub_tasks++;
+            }
+          }
+        }
+      }
+    });
+
+    // Sort the filtered issues by the "updated" field in descending order
+    issues.sort((a, b) => new Date(b.updated) - new Date(a.updated));
+    issues.forEach((story) => {
+      let response = getGithubData(story.story_id);
+      console.log(response);
+      let respose_data = {
+        assignee : story.assignee,
+        commits : [response]
+      };
+      github_response.push(response)
+    });
+
+    res.json({ github_response });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // Server running in port
 app.listen(PORT, () => {
