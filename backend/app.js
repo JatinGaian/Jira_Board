@@ -1511,6 +1511,8 @@ function isTodayOrYesterday(dateStr) {
   );
 }
 
+const convertTimestamp = timestamp => new Date(new Date(timestamp).getTime() - (8 * 24 * 60 * 60 * 1000) - (37 * 60 * 1000) - 8 * 60 * 60 * 1000).toISOString().replace(/Z$/, '') + '.020Z';
+
 app.post("/sprint/gitdata", async (req, res) => {
   try {
     const boards = req.body; // Expects an array of board objects
@@ -1520,6 +1522,8 @@ app.post("/sprint/gitdata", async (req, res) => {
       for (const sprint of board.sprints) {
         const sprint_id = sprint.sprint_id;
         const sprint_name = sprint.sprint_name;
+        const sprint_start = sprint.sprint_start; // Assuming this is available in the sprint object
+        const sprint_end = sprint.sprint_end; // Assuming this is available in the sprint object
         const response = await getSprintIssues(sprint_id);
 
         const issues = [];
@@ -1527,9 +1531,9 @@ app.post("/sprint/gitdata", async (req, res) => {
         // Filter and process issues
         for (let issue of response?.issues || []) {
           // if (isTodayOrYesterday(issue.fields.updated)) {
-            if (issue.fields.updated) {
+          if (issue.fields.updated) {
             const { fields } = issue;
-            const { status, issuetype, project, customfield_10018, customfield_10157, timetracking, customfield_10003, customfield_10020, creator, assignee, duedate,
+            const {status,issuetype,project,customfield_10018,customfield_10157,timetracking,customfield_10003,customfield_10020,creator,assignee,duedate,
             } = fields;
 
             let story = {
@@ -1556,6 +1560,12 @@ app.post("/sprint/gitdata", async (req, res) => {
               creator: creator.displayName,
               assignee: assignee ? assignee.displayName : "Not added",
               duedate: duedate ? duedate : "Not added",
+              sprint_start: customfield_10018[0].startDate
+                ? customfield_10018[0].startDate.substring(0, 10)
+                : "",
+              sprint_end: customfield_10018[0].endDate
+                ? customfield_10018[0].endDate.substring(0, 10)
+                : "",
               number_of_sub_tasks: 0,
               completed_sub_tasks: 0,
             };
@@ -1579,7 +1589,8 @@ app.post("/sprint/gitdata", async (req, res) => {
                     story_name: story.story_name,
                     story_id: story.story_id,
                     message: commit.message,
-                    authorTimestamp: commit.authorTimestamp,
+                    authorTimestamp:
+                      convertTimestamp(commit.authorTimestamp),
                     repositoryName: repo.name,
                     repositoryUrl: repo.url,
                     filesChanged: commit.files.length,
@@ -1593,7 +1604,13 @@ app.post("/sprint/gitdata", async (req, res) => {
 
         // Flatten the array of arrays
         const flatCommits = githubResponses.flat();
-        results.push({ sprint_name, sprint_id, commits: flatCommits });
+        results.push({
+          sprint_name,
+          sprint_id,
+          sprint_start,
+          sprint_end,
+          commits: flatCommits,
+        });
       }
     }
 
@@ -1603,7 +1620,6 @@ app.post("/sprint/gitdata", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
 
 
 app.listen(PORT, () => {
