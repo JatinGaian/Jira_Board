@@ -175,6 +175,7 @@ app.get("/sprint/:sprintId/stories", async (req, res) => {
         story_status: issue.fields.status.statusCategory.name,
         project_id: issue.fields.project.id,
         project_name: issue.fields.project.name,
+        project_key: issue.fields.project.key,
         status_name: issue.fields.status.name,
         sprint_id: issue.fields.customfield_10018[0].id.toString(),
         story_ac_hygiene: issue.fields.customfield_10157 ? "YES" : "NO",
