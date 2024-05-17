@@ -170,6 +170,7 @@ app.get("/sprint/:sprintId/stories", async (req, res) => {
       const story_id = issue.id;
       const story = {
         story_id: story_id,
+        story_key: issue.key,
         story_name: issue.fields.summary,
         story_type: issue.fields.issuetype.name,
         story_status: issue.fields.status.statusCategory.name,
@@ -178,7 +179,7 @@ app.get("/sprint/:sprintId/stories", async (req, res) => {
         project_key: issue.fields.project.key,
         status_name: issue.fields.status.name,
         sprint_id: issue.fields.customfield_10018[0].id.toString(),
-        story_ac_hygiene: issue.fields.customfield_10157 ? "YES" : "NO",
+        story_ac_hygiene: issue.fields.customfield_10156 !== null ? "YES" : "NO",
         original_estimate:
           issue.fields.timetracking.originalEstimate || "Not added",
         remaining_estimate:
