@@ -1511,7 +1511,8 @@ function isTodayOrYesterday(dateStr) {
   );
 }
 
-const convertTimestamp = timestamp => new Date(new Date(timestamp).getTime() - (8 * 24 * 60 * 60 * 1000) - (37 * 60 * 1000) - 8 * 60 * 60 * 1000).toISOString().replace(/Z$/, '') + '.020Z';
+const formatDate = (dateStr) =>
+  new Date(dateStr).toLocaleString("sv-SE", { timeZone: "Asia/Kolkata", hour12: false }).replace(" ", "T") + dateStr.slice(-5).replace(":", "");
 
 app.post("/sprint/gitdata", async (req, res) => {
   try {
@@ -1533,7 +1534,18 @@ app.post("/sprint/gitdata", async (req, res) => {
           // if (isTodayOrYesterday(issue.fields.updated)) {
           if (issue.fields.updated) {
             const { fields } = issue;
-            const {status,issuetype,project,customfield_10018,customfield_10157,timetracking,customfield_10003,customfield_10020,creator,assignee,duedate,
+            const {
+              status,
+              issuetype,
+              project,
+              customfield_10018,
+              customfield_10157,
+              timetracking,
+              customfield_10003,
+              customfield_10020,
+              creator,
+              assignee,
+              duedate,
             } = fields;
 
             let story = {
@@ -1589,8 +1601,8 @@ app.post("/sprint/gitdata", async (req, res) => {
                     story_name: story.story_name,
                     story_id: story.story_id,
                     message: commit.message,
-                    authorTimestamp:
-                      convertTimestamp(commit.authorTimestamp),
+                    // authorTimestamp:convertTimestamp(commit.authorTimestamp),
+                    authorTimestamp: formatDate(commit.authorTimestamp),
                     repositoryName: repo.name,
                     repositoryUrl: repo.url,
                     filesChanged: commit.files.length,
@@ -1620,7 +1632,6 @@ app.post("/sprint/gitdata", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
 
 app.listen(PORT, () => {
   // // conole.log(`Server running on port ${PORT}...`);
