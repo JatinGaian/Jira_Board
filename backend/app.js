@@ -39,10 +39,11 @@ app.get("/allBoards", async (req, res) => {
           board_id: board.id,
           board_name: board.name,
           board_type: board.type,
+          project_key: board.location ? board.location.projectKey : null,
         }))
       : [];
 
-    // // conole.log(response);
+    // console.log(response);
     res.json(response);
   } catch (error) {
     console.error("Error fetching boards:", error);
@@ -92,7 +93,7 @@ app.get("/alerts", async (req, res) => {
             issue.fields.customfield_10020 == null
               ? 0
               : issue.fields.customfield_10020,
-          story_ac_hygiene: issue.fields.customfield_10157 ? "YES" : "NO",
+          story_ac_hygiene: issue.fields.customfield_10156 ? "YES" : "NO",
           story_reviewers: issue.fields.customfield_10003
             ? issue.fields.customfield_10003.length !== 0
               ? issue.fields.customfield_10003
@@ -179,7 +180,8 @@ app.get("/sprint/:sprintId/stories", async (req, res) => {
         project_key: issue.fields.project.key,
         status_name: issue.fields.status.name,
         sprint_id: issue.fields.customfield_10018[0].id.toString(),
-        story_ac_hygiene: issue.fields.customfield_10156 !== null ? "YES" : "NO",
+        story_ac_hygiene:
+          issue.fields.customfield_10156 !== null ? "YES" : "NO",
         original_estimate:
           issue.fields.timetracking.originalEstimate || "Not added",
         remaining_estimate:
@@ -423,7 +425,7 @@ app.get("/:boardID/stories", async (req, res) => {
           project_id: issue.fields.project.id,
           project_name: issue.fields.project.name,
           status_name: issue.fields.status.name,
-          story_ac_hygiene: issue.fields.customfield_10157 ? "YES" : "NO",
+          story_ac_hygiene: issue.fields.customfield_10156 ? "YES" : "NO",
           original_estimate:
             issue.fields.timetracking.originalEstimate || "Not added",
           remaining_estimate:
@@ -1391,7 +1393,7 @@ app.delete("/delete/summary/:board_id", async (req, res) => {
 //     for (let issue of response?.issues || []) {
 //       if (isTodayOrYesterday(issue.fields.updated)) {
 //         const { fields } = issue;
-//         const {status,issuetype,project,customfield_10018,customfield_10157,timetracking,customfield_10003,customfield_10020,creator,assignee,duedate,
+//         const {status,issuetype,project,customfield_10018,customfield_10156,timetracking,customfield_10003,customfield_10020,creator,assignee,duedate,
 //         } = fields;
 
 //         let story = {
@@ -1404,7 +1406,7 @@ app.delete("/delete/summary/:board_id", async (req, res) => {
 //           status_name: status.name,
 //           sprint_id: customfield_10018[0].id.toString(),
 //           sprint_name: customfield_10018[0].name,
-//           story_ac_hygiene: customfield_10157 ? "YES" : "NO",
+//           story_ac_hygiene: customfield_10156 ? "YES" : "NO",
 //           original_estimate: timetracking.originalEstimate || "Not added",
 //           remaining_estimate: timetracking.remainingEstimate || "Not added",
 //           time_spent: timetracking.timeSpent || "Not added",
@@ -1514,7 +1516,9 @@ function isTodayOrYesterday(dateStr) {
 }
 
 const formatDate = (dateStr) =>
-  new Date(dateStr).toLocaleString("sv-SE", { timeZone: "Asia/Kolkata", hour12: false }).replace(" ", "T") + dateStr.slice(-5).replace(":", "");
+  new Date(dateStr)
+    .toLocaleString("sv-SE", { timeZone: "Asia/Kolkata", hour12: false })
+    .replace(" ", "T") + dateStr.slice(-5).replace(":", "");
 
 app.post("/sprint/gitdata", async (req, res) => {
   try {
@@ -1541,7 +1545,7 @@ app.post("/sprint/gitdata", async (req, res) => {
               issuetype,
               project,
               customfield_10018,
-              customfield_10157,
+              customfield_10156,
               timetracking,
               customfield_10003,
               customfield_10020,
@@ -1560,7 +1564,7 @@ app.post("/sprint/gitdata", async (req, res) => {
               status_name: status.name,
               sprint_id: customfield_10018[0].id.toString(),
               sprint_name: customfield_10018[0].name,
-              story_ac_hygiene: customfield_10157 ? "YES" : "NO",
+              story_ac_hygiene: customfield_10156 ? "YES" : "NO",
               original_estimate: timetracking.originalEstimate || "Not added",
               remaining_estimate: timetracking.remainingEstimate || "Not added",
               time_spent: timetracking.timeSpent || "Not added",
