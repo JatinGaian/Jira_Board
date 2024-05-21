@@ -61,59 +61,47 @@ app.get("/:boardId/allSprints", async (req, res) => {
 
 // ALerts
 app.get("/alerts", async (req, res) => {
-  const data = await getAlerts();
-  // conole.log(data, "data");
-  const issues = data?.issues ? data.issues : [];
-  const alerts_data = issues
-    .filter((issue) => issue.fields.issuetype.name === "Story")
-    .map((issue) => {
-      if (issue.fields.customfield_10018 && issue !== null) {
+  try {
+    const data = await getAlerts();
+    const issues = data?.issues || [];
+
+    const alerts_data = issues
+      .filter(issue => issue.fields.issuetype.name === "Story" && issue.fields.customfield_10018)
+      .map(issue => {
+        const { fields } = issue;
+        const customField = fields.customfield_10018[0];
+        const reviewers = fields.customfield_10003 || [];
+        
         return {
-          creator: issue.fields.creator.displayName,
-          assignee:
-            issue.fields.assignee !== null
-              ? issue.fields.assignee.displayName
-              : "Not added",
-          sprint_id: issue.fields.customfield_10018[0].id.toString(),
-          sprint_name: issue.fields.customfield_10018[0].name,
-          sprint_start: issue.fields.customfield_10018[0].startDate
-            ? issue.fields.customfield_10018[0].startDate.substring(0, 10)
-            : "",
-          sprint_end: issue.fields.customfield_10018[0].endDate
-            ? issue.fields.customfield_10018[0].endDate.substring(0, 10)
-            : "",
+          creator: fields.creator.displayName,
+          assignee: fields.assignee ? fields.assignee.displayName : "Not added",
+          sprint_id: customField.id.toString(),
+          sprint_name: customField.name,
+          sprint_start: customField.startDate ? customField.startDate.substring(0, 10) : "",
+          sprint_end: customField.endDate ? customField.endDate.substring(0, 10) : "",
           story_id: issue.id,
-          story_name: issue.fields.summary,
-          story_type: issue.fields.issuetype.name,
-          story_status: issue.fields.status.statusCategory.name,
-          project_id: issue.fields.project.id,
-          project_name: issue.fields.project.name,
-          status_name: issue.fields.status.name,
-          story_points:
-            issue.fields.customfield_10020 == null
-              ? 0
-              : issue.fields.customfield_10020,
-          story_ac_hygiene: issue.fields.customfield_10156 ? "YES" : "NO",
-          story_reviewers: issue.fields.customfield_10003
-            ? issue.fields.customfield_10003.length !== 0
-              ? issue.fields.customfield_10003
-                  .map((r, i) => r.displayName)
-                  .join(", ")
-              : "Reviewers not added"
-            : "Reviewers not added",
-          // updated: new Date(issue.fields.updated).getTime(),
-          updated: issue.fields.updated,
-          priority: issue.fields.priority.name,
-          time_original_estimate: issue?.fields?.timeoriginalestimate
-            ? issue.fields.timeoriginalestimate
-            : "Not added",
+          story_name: fields.summary,
+          story_type: fields.issuetype.name,
+          story_status: fields.status.statusCategory.name,
+          project_id: fields.project.id,
+          project_name: fields.project.name,
+          status_name: fields.status.name,
+          story_points: fields.customfield_10020 || 0,
+          story_ac_hygiene: fields.customfield_10156 ? "YES" : "NO",
+          story_reviewers: reviewers.length ? reviewers.map(r => r.displayName).join(", ") : "Reviewers not added",
+          updated: fields.updated,
+          priority: fields.priority.name,
+          time_original_estimate: fields.timeoriginalestimate || "Not added",
         };
-      }
-    });
-  // conole.log(alerts_data);
-  res.json(alerts_data);
-  // // conole.log(alerts_data);
+      });
+
+    res.json(alerts_data);
+  } catch (error) {
+    console.error("Error fetching alerts:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
+
 
 app.get("/comments", async (req, res) => {
   const body = req.params.body;
@@ -1140,6 +1128,85 @@ function subtskCalaulation(all_pie_data, active_sprints) {
 //     res.status(500).json({ error: "Internal Server Error" });
 //   }
 // });
+// app.post("/allboards/activesprints", async (req, res) => {
+//   try {
+//     const data = req.body;
+//     const all_boards = data;
+
+//     const activeSprints = [];
+//     const processedBoardIds = new Set(); // Maintain a set of processed board IDs
+
+//     for (let i = 0; i < all_boards.length; i++) {
+//       const board_id = all_boards[i].board_id;
+
+//       // Skip processing if the board ID has already been processed
+//       if (processedBoardIds.has(board_id)) {
+//         continue;
+//       }
+
+//       // Mark the current board ID as processed
+//       processedBoardIds.add(board_id);
+
+//       const board_name = all_boards[i].board_name;
+//       const board_type = all_boards[i].board_type;
+//       const sprintsData = await getSprints(board_id);
+//       const active_sprints = sprintsData?.values
+//         ? sprintsData.values.filter((sprint) => sprint.state === "active")
+//         : [];
+
+//       if (active_sprints.length === 0) {
+//         continue;
+//       }
+
+//       // Process active sprints
+//       const boardData = {
+//         board_id: board_id,
+//         board_name: board_name,
+//         board_type: board_type,
+//         sprints: [],
+//       };
+
+//       for (let j = 0; j < active_sprints.length; j++) {
+//         const sprintData = await getSprintIssues(active_sprints[j].id);
+//         const stories = sprintData.issues.filter(
+//           (issue) => issue.fields.issuetype.name === "Story"
+//         );
+
+//         const total_stories = stories.length;
+//         const done_stories = stories.filter(
+//           (issue) => issue.fields.status?.statusCategory?.name === "Done"
+//         ).length;
+//         const in_progress_stories = stories.filter(
+//           (issue) => issue.fields.status?.statusCategory?.name === "In Progress"
+//         ).length;
+
+//         boardData.sprints.push({
+//           sprint_id: active_sprints[j].id,
+//           sprint_name: active_sprints[j].name,
+//           sprint_status: "active",
+//           sprint_start: active_sprints[j].startDate
+//             ? active_sprints[j].startDate
+//             : "No date added",
+//           sprint_end: active_sprints[j].endDate
+//             ? active_sprints[j].endDate
+//             : "No date added",
+//           total_stories: total_stories,
+//           done_stories: done_stories,
+//           in_progress_stories: in_progress_stories,
+//         });
+//       }
+
+//       activeSprints.push(boardData);
+//     }
+
+//     res.json(activeSprints);
+//   } catch (error) {
+//     console.error("Error:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
+
 app.post("/allboards/activesprints", async (req, res) => {
   try {
     const data = req.body;
@@ -1148,35 +1215,28 @@ app.post("/allboards/activesprints", async (req, res) => {
     const activeSprints = [];
     const processedBoardIds = new Set(); // Maintain a set of processed board IDs
 
-    for (let i = 0; i < all_boards.length; i++) {
-      const board_id = all_boards[i].board_id;
+    // Function to process a single board
+    const processBoard = async (board) => {
+      const board_id = board.board_id;
 
       // Skip processing if the board ID has already been processed
       if (processedBoardIds.has(board_id)) {
-        continue;
+        return;
       }
 
       // Mark the current board ID as processed
       processedBoardIds.add(board_id);
 
-      const board_name = all_boards[i].board_name;
-      const board_type = all_boards[i].board_type;
+      const board_name = board.board_name;
+      const board_type = board.board_type;
       const sprintsData = await getSprints(board_id);
       const active_sprints = sprintsData?.values
         ? sprintsData.values.filter((sprint) => sprint.state === "active")
         : [];
 
       if (active_sprints.length === 0) {
-        continue;
+        return;
       }
-
-      // Process active sprints
-      const boardData = {
-        board_id: board_id,
-        board_name: board_name,
-        board_type: board_type,
-        sprints: [],
-      };
 
       for (let j = 0; j < active_sprints.length; j++) {
         const sprintData = await getSprintIssues(active_sprints[j].id);
@@ -1192,7 +1252,10 @@ app.post("/allboards/activesprints", async (req, res) => {
           (issue) => issue.fields.status?.statusCategory?.name === "In Progress"
         ).length;
 
-        boardData.sprints.push({
+        activeSprints.push({
+          board_id: board_id,
+          board_name: board_name,
+          board_type: board_type,
           sprint_id: active_sprints[j].id,
           sprint_name: active_sprints[j].name,
           sprint_status: "active",
@@ -1207,8 +1270,13 @@ app.post("/allboards/activesprints", async (req, res) => {
           in_progress_stories: in_progress_stories,
         });
       }
+    };
 
-      activeSprints.push(boardData);
+    // Process boards in batches of 3
+    for (let i = 0; i < all_boards.length; i += 3) {
+      const batch = all_boards.slice(i, i + 3);
+      const promises = batch.map((board) => processBoard(board));
+      await Promise.all(promises);
     }
 
     res.json(activeSprints);
@@ -1217,6 +1285,7 @@ app.post("/allboards/activesprints", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 // // //
 
@@ -1526,11 +1595,11 @@ app.post("/sprint/gitdata", async (req, res) => {
     const results = [];
 
     for (const board of boards) {
-      for (const sprint of board.sprints) {
-        const sprint_id = sprint.sprint_id;
-        const sprint_name = sprint.sprint_name;
-        const sprint_start = sprint.sprint_start; // Assuming this is available in the sprint object
-        const sprint_end = sprint.sprint_end; // Assuming this is available in the sprint object
+      // for (const sprint of board.sprints) {
+        const sprint_id = board.sprint_id;
+        const sprint_name = board.sprint_name;
+        const sprint_start = board.sprint_start; // Assuming this is available in the sprint object
+        const sprint_end = board.sprint_end; // Assuming this is available in the sprint object
         const response = await getSprintIssues(sprint_id);
 
         const issues = [];
@@ -1607,8 +1676,8 @@ app.post("/sprint/gitdata", async (req, res) => {
                     story_name: story.story_name,
                     story_id: story.story_id,
                     message: commit.message,
-                    // authorTimestamp:convertTimestamp(commit.authorTimestamp),
-                    authorTimestamp: formatDate(commit.authorTimestamp),
+                    authorTimestamp:commit.authorTimestamp,
+                    // authorTimestamp: formatDate(commit.authorTimestamp),
                     repositoryName: repo.name,
                     repositoryUrl: repo.url,
                     filesChanged: commit.files.length,
@@ -1629,7 +1698,7 @@ app.post("/sprint/gitdata", async (req, res) => {
           sprint_end,
           commits: flatCommits,
         });
-      }
+      // }
     }
 
     res.json(results);
