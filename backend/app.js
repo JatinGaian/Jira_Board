@@ -1,6 +1,7 @@
 const express = require("express");
 const { v4: uuidv4 } = require("uuid");
 const cors = require("cors");
+require("dotenv").config();
 const getSprints = require("./APIs/get-all-sprints-for-a-board");
 const getSprintIssues = require("./APIs/get-all-issues-for-a-sprint");
 const getBoardIssues = require("./APIs/get-all-issues-for-a-board");
@@ -13,16 +14,28 @@ const get_all_boards = require("./APIs/get_all_boards");
 const get_summaryboards = require("./summaryBoards/getSummaryboards");
 const getGithubCommits = require("./APIs/get-github_commits");
 const getGithubPulls = require("./APIs/get-github_pulls");
+const lms_landd = require("./Schemas/LMSandL&D/LmsAndLandDSchema");
+const lms_landd_employees = require("./Schemas/LMSandL&D/EmployeeSchemaLMS");
 // const summaryJsonpath = require("./boardsJson/summaryBoards.json")
 const fs = require("fs").promises;
-
+const mongo_uri = process.env.MONGO_URI;
 const app = express();
+const mongoose = require("mongoose");
 const PORT = 8080;
 // const PORT = 4000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
+
+mongoose
+  .connect(mongo_uri)
+  .then(() => {
+    console.log("connected to Data-base");
+  })
+  .catch((e) => {
+    console.log(e);
+  });
 
 app.get("/health", async (req, res) => {
   res.json({ message: "ok" });
@@ -1723,6 +1736,60 @@ app.post("/sprint/gitdata", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// LMS and L&D
+app.post("/lms/LandD/tracking", async (req, res) => {
+  try {
+    const data = await lms_landd.create(req.body);
+    res.status(200).json(data);
+    console.log(req.body);
+    res.send(req.body);
+    // res.json(response);
+  } catch (error) {
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+app.get("/lms/LandD/tracking", async (req, res) => {
+  try {
+    const data = await lms_landd.find({});
+    res.status(200).json(data);
+    console.log(req.body);
+    // res.json(response);
+  } catch (error) {
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+app.post("/lms/LandD/employeesdata", async (req, res) => {
+  try {
+    const data = await lms_landd_employees.create(req.body);
+    res.status(200).json(data);
+    console.log(req.body);
+    res.send(req.body);
+    // res.json(response);
+  } catch (error) {
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+app.get("/lms/LandD/employeesdata", async (req, res) => {
+  try {
+    const data = await lms_landd_employees.find({});
+    res.status(200).json(data);
+    console.log(req.body);
+    // res.json(response);
+  } catch (error) {
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
