@@ -14,8 +14,10 @@ const get_all_boards = require("./APIs/get_all_boards");
 const get_summaryboards = require("./summaryBoards/getSummaryboards");
 const getGithubCommits = require("./APIs/get-github_commits");
 const getGithubPulls = require("./APIs/get-github_pulls");
-const lms_landd = require("./Schemas/LMSandL&D/LmsAndLandDSchema");
-const lms_landd_employees = require("./Schemas/LMSandL&D/EmployeeSchemaLMS");
+const lms_landd = require("./LMSandL&D/Schemas/LmsAndLandDSchema");
+const lms_landd_employees = require("./LMSandL&D/Schemas/EmployeeSchemaLMS");
+const findEmployeeByIdAndName = require("./LMSandL&D/APIs/get_employee_data")
+
 // const summaryJsonpath = require("./boardsJson/summaryBoards.json")
 const fs = require("fs").promises;
 const mongo_uri = process.env.MONGO_URI;
@@ -1792,6 +1794,21 @@ app.get("/lms/LandD/employeesdata", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+app.post("/lms/LandD/login", async (req, res) => {
+  try {
+    const data = req.body;
+    const response = await findEmployeeByIdAndName(data);
+    res.status(200).json(response);
+    console.log(req.body);
+    // res.json(response);
+  } catch (error) {
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
 
 app.listen(PORT, () => {
   // // conole.log(`Server running on port ${PORT}...`);
