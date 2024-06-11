@@ -1,14 +1,12 @@
 const Employees = require("../Schemas/EmployeeSchemaLMS");
 
-async function findEmployeeByIdOrName(data) {
+async function findEmployeeByIdAndName(data) {
   try {
-    const query = {
-      $or: [
-        { EmployeeID: data.EmployeeID },
-        { Name: data.Name }
-      ]
-    };
-    const employee = await Employees.findOne(query);
+    const employee = await Employees.findOne({
+      EmployeeID: data.EmployeeID,
+      Name: data.Name
+    });
+    console.log(employee);
     return employee;
   } catch (error) {
     console.error("Error finding employee:", error);
@@ -16,4 +14,4 @@ async function findEmployeeByIdOrName(data) {
   }
 }
 
-module.exports = findEmployeeByIdOrName;
+module.exports = findEmployeeByIdAndName;

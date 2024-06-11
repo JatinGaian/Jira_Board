@@ -16,7 +16,10 @@ const getGithubCommits = require("./APIs/get-github_commits");
 const getGithubPulls = require("./APIs/get-github_pulls");
 const lms_landd = require("./LMSandL&D/Schemas/LmsAndLandDSchema");
 const lms_landd_employees = require("./LMSandL&D/Schemas/EmployeeSchemaLMS");
-const findEmployeeByIdAndName = require("./LMSandL&D/APIs/get_employee_data")
+const findEmployeeByIdAndName = require("./LMSandL&D/APIs/get_employee_data");
+const bycrpt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 
 // const summaryJsonpath = require("./boardsJson/summaryBoards.json")
 const fs = require("fs").promises;
@@ -29,6 +32,7 @@ const PORT = 8080;
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
+app.use(cookieParser());
 
 mongoose
   .connect(mongo_uri)
@@ -1755,7 +1759,6 @@ app.post("/lms/LandD/tracking", async (req, res) => {
   }
 });
 
-
 app.get("/lms/LandD/tracking", async (req, res) => {
   try {
     const data = await lms_landd.find({});
@@ -1767,7 +1770,6 @@ app.get("/lms/LandD/tracking", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 app.post("/lms/LandD/employeesdata", async (req, res) => {
   try {
@@ -1781,7 +1783,6 @@ app.post("/lms/LandD/employeesdata", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 app.get("/lms/LandD/employeesdata", async (req, res) => {
   try {
@@ -1798,17 +1799,20 @@ app.get("/lms/LandD/employeesdata", async (req, res) => {
 app.post("/lms/LandD/login", async (req, res) => {
   try {
     const data = req.body;
-    const response = await findEmployeeByIdAndName(data);
-    res.status(200).json(response);
+    const employee = await findEmployeeByIdAndName(data);
+
+    if (employee) {
+      res.status(200).json(employee);
+    } else {
+      res.status(404).json({ error: "Employee not found" });
+    }
+
     console.log(req.body);
-    // res.json(response);
   } catch (error) {
-    console.error("Error fetching boards:", error);
+    console.error("Error fetching employee:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-
 
 app.listen(PORT, () => {
   // // conole.log(`Server running on port ${PORT}...`);
