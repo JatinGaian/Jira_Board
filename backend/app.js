@@ -17,6 +17,8 @@ const getGithubPulls = require("./APIs/get-github_pulls");
 const lms_landd = require("./LMSandL&D/Schemas/LmsAndLandDSchema");
 const lms_landd_employees = require("./LMSandL&D/Schemas/EmployeeSchemaLMS");
 const findEmployeeByIdAndName = require("./LMSandL&D/APIs/get_employee_data");
+const getCourse = require('./LMSandL&D/Schemas/CourseSchema')
+const getEmployeeCourses = require("./LMSandL&D/APIs/get_employee_courses");
 const bycrpt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
@@ -1813,6 +1815,54 @@ app.post("/lms/LandD/login", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+
+// getCourse
+app.post("/lms/LandD/coursesvideolist", async (req, res) => {
+  try {
+    const data = await getCourse.create(req.body);
+    res.status(200).json(data);
+    console.log(req.body);
+    res.send(req.body);
+    // res.json(response);
+  } catch (error) {
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/lms/LandD/coursesvideolist", async (req, res) => {
+  try {
+    const data = await getCourse.find({});
+    res.status(200).json(data);
+    console.log(req.body);
+    // res.json(response);
+  } catch (error) {
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+// courses for employee
+app.post("/lms/LandD/login", async (req, res) => {
+  try {
+    const data = req.body;
+    const employee = await getEmployeeCourses(data);
+
+    if (employee) {
+      res.status(200).json(employee);
+    } else {
+      res.status(404).json({ error: "Employee not found" });
+    }
+
+    console.log(req.body);
+  } catch (error) {
+    console.error("Error fetching employee:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 
 app.listen(PORT, () => {
   // // conole.log(`Server running on port ${PORT}...`);
