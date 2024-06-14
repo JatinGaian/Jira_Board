@@ -17,7 +17,7 @@ const getGithubPulls = require("./APIs/get-github_pulls");
 const lms_landd = require("./LMSandL&D/Schemas/LmsAndLandDSchema");
 const lms_landd_employees = require("./LMSandL&D/Schemas/EmployeeSchemaLMS");
 const findEmployeeByIdAndName = require("./LMSandL&D/APIs/get_employee_data");
-const getCourse = require('./LMSandL&D/Schemas/CourseSchema')
+const getCourse = require("./LMSandL&D/Schemas/CourseSchema");
 const getEmployeeCourses = require("./LMSandL&D/APIs/get_employee_courses");
 const bycrpt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -968,15 +968,13 @@ app.get("/summaryDashboard/:boardId/subtask/progress", async (req, res) => {
 // Project Data
 app.get("/:boardId/project", async (req, res) => {
   const board_id = req.params.boardId;
-  const allSprints = [];
-  const all_pie_data = [];
+
   let values = {};
   try {
     const data = await get_board_metadata(board_id);
     const project_data = [data?.location.projectKey, data?.location.projectId];
 
-    let project_key =
-      project_data[0] !== null ? project_data[0] : project_data[1];
+    let project_key = project_data[0] !== null ? project_data[0] : project_data[1];
     // conole.log(project_key);
     const response = await get_project_data(project_key);
     // conole.log(response);
@@ -1816,7 +1814,6 @@ app.post("/lms/LandD/login", async (req, res) => {
   }
 });
 
-
 // getCourse
 app.post("/lms/LandD/coursesvideolist", async (req, res) => {
   try {
@@ -1843,26 +1840,22 @@ app.get("/lms/LandD/coursesvideolist", async (req, res) => {
   }
 });
 
-
 // courses for employee
-app.post("/lms/LandD/login", async (req, res) => {
+app.get("/lms/LandD/:employeeID/coursesvideolist", async (req, res) => {
   try {
-    const data = req.body;
-    const employee = await getEmployeeCourses(data);
+    const employeeID = req.params.employeeID;
 
-    if (employee) {
-      res.status(200).json(employee);
-    } else {
-      res.status(404).json({ error: "Employee not found" });
-    }
+    const data = await getCourse.find({});
+    const courses = data.filter((emp) => {
+      return emp.EmployeeID == employeeID;
+    });
+    res.status(200).json(courses);
 
-    console.log(req.body);
   } catch (error) {
-    console.error("Error fetching employee:", error);
+    console.error("Error fetching employee courses:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 app.listen(PORT, () => {
   // // conole.log(`Server running on port ${PORT}...`);

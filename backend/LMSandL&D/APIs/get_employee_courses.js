@@ -1,8 +1,8 @@
-const Employees = require("../Schemas/EmployeeSchemaLMS");
+const Courses = require("../Schemas/CourseSchema");
 
 async function getEmployeeCourses(data) {
   try {
-    const employee = await Employees.findOne({
+    const employee = await Courses.findOne({
       EmployeeID: data.EmployeeID,
     });
     console.log(employee);
