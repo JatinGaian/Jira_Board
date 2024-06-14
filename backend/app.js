@@ -1815,18 +1815,111 @@ app.post("/lms/LandD/login", async (req, res) => {
 });
 
 // getCourse
-app.post("/lms/LandD/coursesvideolist", async (req, res) => {
+// app.post("/lms/LandD/:employeeID/coursesvideolist", async (req, res) => {
+//   try {
+//     const data = await getCourse.create(req.body);
+//     res.status(200).json(data);
+//     console.log(req.body);
+//     res.send(req.body);
+//     // res.json(response);
+//   } catch (error) {
+//     console.error("Error fetching boards:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
+//new route to post  course to particular employee
+app.post("/lms/LandD/:employeeID/coursesvideolist", async (req, res) => {
   try {
-    const data = await getCourse.create(req.body);
-    res.status(200).json(data);
-    console.log(req.body);
-    res.send(req.body);
-    // res.json(response);
+    const { employeeID } = req.params;
+    const courses = req.body; // Expecting an array of course objects
+
+    const employee = await lms_landd_employees.findOne({ EmployeeID: employeeID });
+
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    // Initialize CoursesAligned if it's undefined
+    if (!employee.CoursesAligned) {
+      employee.CoursesAligned = [];
+    }
+
+    const newCourses = [];
+
+    // Iterate over the array and create each course
+    for (const courseData of courses) {
+      const newCourseData = { ...courseData, employee: employee._id };
+      const newCourse = await getCourse.create(newCourseData);
+      newCourses.push(newCourse);
+      employee.CoursesAligned.push(newCourse._id);
+    }
+
+    await employee.save();
+
+    res.status(200).json(newCourses);
   } catch (error) {
-    console.error("Error fetching boards:", error);
+    console.error("Error adding courses:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+
+// new route getting employee data with course reference
+
+app.get("/lms/LandD/employee/:employeeID", async (req, res) => {
+  try {
+    const { employeeID } = req.params;
+
+    // Find the employee by EmployeeID and populate the CoursesAligned field
+    const employee = await lms_landd_employees.findOne({ EmployeeID: employeeID }).populate('CoursesAligned');
+
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    res.status(200).json(employee);
+  } catch (error) {
+    console.error("Error fetching employee data:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// new api for updating course based on employee_id  and  course_id
+app.put("/lms/LandD/:employeeID/coursesvideolist/:courseID", async (req, res) => {
+  try {
+    const { employeeID, courseID } = req.params;
+    const updateData = req.body;
+
+    // Find the employee by EmployeeID
+    const employee = await lms_landd_employees.findOne({ EmployeeID: employeeID });
+
+    if (!employee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
+    // Find the index of the course in the CoursesAligned array
+    const courseIndex = employee.CoursesAligned.findIndex(course => course._id.equals(courseID));
+
+    if (courseIndex === -1) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    // Update the course data
+    employee.CoursesAligned[courseIndex] = updateData;
+
+    // Save the updated employee document
+    await employee.save();
+
+    res.status(200).json(employee.CoursesAligned[courseIndex]);
+  } catch (error) {
+    console.error("Error updating course:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+
 
 app.get("/lms/LandD/coursesvideolist", async (req, res) => {
   try {
