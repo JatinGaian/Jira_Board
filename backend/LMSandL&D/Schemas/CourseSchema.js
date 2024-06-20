@@ -1,16 +1,15 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-// Define the Chapter schema
-const ChapterSchema = new mongoose.Schema({
+const ChapterSchema = new Schema({
   url: { type: String, required: true },
   name: { type: String, required: true },
   pausedTime: { type: Number, default: 0 },
   completed: { type: Boolean, default: false },
 });
 
-// Define the Course schema
-const CourseSchema = new mongoose.Schema({
-  EmployeeID: { type: String, required: true },
+const CourseSchema = new Schema({
+  employee: { type: Schema.Types.ObjectId, ref: 'Employees', required: true },
   banner: { type: String, required: true },
   chapter: { type: [ChapterSchema], required: true },
   demourl: { type: String, required: true },
@@ -25,7 +24,6 @@ const CourseSchema = new mongoose.Schema({
   watchedChapters: { type: Number, default: 0 },
 });
 
-// Create the Course model
-const Course = mongoose.model("Course", CourseSchema);
+const Course = mongoose.model('Course', CourseSchema);
 
 module.exports = Course;

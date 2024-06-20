@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 
 // Define the schema for aligned courses
 const alignedCourseSchema = new mongoose.Schema({
@@ -95,7 +96,7 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    CoursesAligned: [alignedCourseSchema],
+    CoursesAligned: [{ type: Schema.Types.ObjectId, ref: 'Course' }],
     CoursesInProgress: [inProgressCourseSchema],
     CoursesCompleted: [completedCourseSchema],
   },
