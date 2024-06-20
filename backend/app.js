@@ -1888,35 +1888,61 @@ app.get("/lms/LandD/employee/:employeeID", async (req, res) => {
 // new api for updating course based on employee_id  and  course_id
 app.put("/lms/LandD/:employeeID/coursesvideolist/:courseID", async (req, res) => {
   try {
+    // console.log("Endpoint hit"); // Log to ensure the endpoint is hit
+
     const { employeeID, courseID } = req.params;
     const updateData = req.body;
 
+    // console.log("Employee ID:", employeeID); // Log the employee ID
+    // console.log("Course ID:", courseID); // Log the course ID
+
+    // Ensure courseID is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(courseID)) {
+      console.log("Invalid courseID");
+      return res.status(400).json({ error: "Invalid courseID" });
+    }
+
     // Find the employee by EmployeeID
-    const employee = await lms_landd_employees.findOne({ EmployeeID: employeeID });
+    const employee = await lms_landd_employees.findOne({ EmployeeID: employeeID }).populate('CoursesAligned');
 
     if (!employee) {
+      console.log("Employee not found");
       return res.status(404).json({ error: "Employee not found" });
     }
 
-    // Find the index of the course in the CoursesAligned array
-    const courseIndex = employee.CoursesAligned.findIndex(course => course._id.equals(courseID));
+    // console.log("Employee found:", employee);
 
-    if (courseIndex === -1) {
+    // Find the index of the course in the CoursesAligned array
+    const course= employee.CoursesAligned.find(course => course._id.equals(courseID));
+
+    if (!course) {
+      console.log("Course not found");
       return res.status(404).json({ error: "Course not found" });
     }
 
-    // Update the course data
-    employee.CoursesAligned[courseIndex] = updateData;
+    // console.log("Current course data:", course);
+
+    // Update specific fields of the course
+    for (const key in updateData) {
+      if (updateData.hasOwnProperty(key)) {
+        course[key] = updateData[key];
+      }
+    }
+
 
     // Save the updated employee document
-    await employee.save();
+    await course.save();
 
-    res.status(200).json(employee.CoursesAligned[courseIndex]);
+    // console.log("Updated course data:", course);
+
+    // Send the updated course as the response
+    res.status(200).json(course);
   } catch (error) {
     console.error("Error updating course:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 
 
