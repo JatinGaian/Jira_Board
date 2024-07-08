@@ -3,7 +3,7 @@ const Employees = require("../Schemas/EmployeeSchemaLMS");
 async function findEmployeeByIdAndName(data) {
   try {
     const employee = await Employees.findOne({
-      EmployeeID: data.EmployeeID,
+      'Employee ID': data.EmployeeID,
       Name: data.Name
     });
     console.log(employee);

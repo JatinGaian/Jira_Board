@@ -3,7 +3,7 @@ const Courses = require("../Schemas/CourseSchema");
 async function getEmployeeCourses(data) {
   try {
     const employee = await Courses.findOne({
-      EmployeeID: data.EmployeeID,
+      'Employee ID': data.EmployeeID,
     });
     console.log(employee);
     return employee;
