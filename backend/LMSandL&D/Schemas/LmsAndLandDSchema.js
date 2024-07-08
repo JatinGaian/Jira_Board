@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const employeeLDSchema =  new mongoose.Schema({
     employees: [{
-      employeeId: {
+      'Employee ID': {
         type: String,
         required: true,
         description: "Unique identifier for the employee"
