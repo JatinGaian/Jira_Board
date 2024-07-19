@@ -1658,21 +1658,50 @@ app.get("/getprofile", async (req, res) => {
     return res.status(400).json({ error: "Name query parameter is required" });
   }
 
-  try {
-    const regex = new RegExp(name, 'i'); // 'i' makes the regex case-insensitive
-    const employeeData = await lms_landd_employees.find({
-      $or: [
-        { 'First Name': regex },
-        { 'Last Name': regex }
-      ]
-    });
+  // Split the name into parts
+  const nameParts = name.split(' ');
 
-    res.status(200).json(employeeData);
+  try {
+    if (nameParts.length < 2) {
+      // Single name case
+      const regex = new RegExp(name, 'i'); // 'i' makes the regex case-insensitive
+      const employeeData = await lms_landd_employees.find({
+        $or: [
+          { 'First Name': regex },
+          { 'Last Name': regex }
+        ]
+      });
+      return res.status(200).json(employeeData);
+    } else {
+      // First name and last name case
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(' '); // Handle cases with middle names or multiple last names
+
+      const firstNameRegex = new RegExp(firstName, 'i'); // 'i' makes the regex case-insensitive
+      const lastNameRegex = new RegExp(lastName, 'i');   // 'i' makes the regex case-insensitive
+
+      const employeeData = await lms_landd_employees.find({
+        $or: [
+          { 'First Name': firstNameRegex },
+          { 'Last Name': lastNameRegex }
+        ]
+      });
+
+      return res.status(200).json(employeeData);
+    }
   } catch (error) {
     console.error("Error fetching employee data:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+
+
+
+
+
+
+
 
 app.listen(PORT, () => {
   // // conole.log(`Server running on port ${PORT}...`);
