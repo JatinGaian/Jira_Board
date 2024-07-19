@@ -61,11 +61,11 @@ app.get("/allBoards", async (req, res) => {
     const data = await get_all_boards();
     let response = data
       ? data.map((board) => ({
-          board_id: board.id,
-          board_name: board.name,
-          board_type: board.type,
-          project_key: board.location ? board.location.projectKey : null,
-        }))
+        board_id: board.id,
+        board_name: board.name,
+        board_type: board.type,
+        project_key: board.location ? board.location.projectKey : null,
+      }))
       : [];
 
     // console.log(response);
@@ -76,6 +76,7 @@ app.get("/allBoards", async (req, res) => {
   }
 });
 
+// for getting all sprints of a specific board
 app.get("/:boardId/allSprints", async (req, res) => {
   const board_id = req.params.boardId;
   const data = await getSprints(board_id);
@@ -84,7 +85,7 @@ app.get("/:boardId/allSprints", async (req, res) => {
   res.json(sprints);
 });
 
-// ALerts
+// ALerts for story completion
 app.get("/alerts", async (req, res) => {
   try {
     const data = await getAlerts();
@@ -159,6 +160,7 @@ app.get("/comments", async (req, res) => {
   res.json(issuesHavingStatusComments);
 });
 
+// for getting all active sprints of a specific board
 app.get("/:boardId/activeSprint", async (req, res) => {
   const board_id = req.params.boardId;
   const data = await getSprints(board_id);
@@ -170,21 +172,17 @@ app.get("/:boardId/activeSprint", async (req, res) => {
       (sprint) => sprint.state === "closed"
     );
     res.json({ active_sprint: closed_sprints[closed_sprints.length - 1] });
-    // // conole.log({ active_sprint: closed_sprints[closed_sprints.length - 1] });
   } else {
     res.json({
-      active_sprint: active_sprint[0],
+      active_sprint: active_sprint,
     });
-    // // conole.log({
-    // active_sprint: active_sprint[0],
-    // });
   }
 });
 
+// for getting stories along with subtasks
 app.get("/sprint/:sprintId/stories", async (req, res) => {
   const sprint_id = req.params.sprintId;
   const response = await getSprintIssues(sprint_id);
-
   const story_subtask_map = {};
   const issues = [];
 
@@ -202,63 +200,58 @@ app.get("/sprint/:sprintId/stories", async (req, res) => {
         project_key: issue.fields.project.key,
         status_name: issue.fields.status.name,
         sprint_id: issue.fields.customfield_10018[0].id.toString(),
-        story_ac_hygiene:
-          issue.fields.customfield_10156 !== null ? "YES" : "NO",
-        original_estimate:
-          issue.fields.timetracking.originalEstimate || "Not added",
-        remaining_estimate:
-          issue.fields.timetracking.remainingEstimate || "Not added",
+        story_ac_hygiene:issue.fields.customfield_10156 !== null ? "YES" : "NO",
+        original_estimate:issue.fields.timetracking.originalEstimate || "Not added",
+        remaining_estimate:issue.fields.timetracking.remainingEstimate || "Not added",
         time_spent: issue.fields.timetracking.timeSpent || "Not added",
-        story_reviewers: issue.fields.customfield_10003
-          ? issue.fields.customfield_10003.length !== 0
-            ? issue.fields.customfield_10003
-                .map((r) => r.displayName)
-                .join(", ")
+        story_reviewers: issue.fields.customfield_10003? issue.fields.customfield_10003.length !== 0 ? issue.fields.customfield_10003
+              .map((r) => r.displayName)
+              .join(", ")
             : "Reviewers not added"
           : "Reviewers not added",
-        story_points:
-          issue.fields.customfield_10020 == null
-            ? 0
-            : issue.fields.customfield_10020,
+        story_points: issue.fields.customfield_10020 == null ? 0 : issue.fields.customfield_10020,
         updated: issue.fields.updated,
         creator: issue.fields.creator.displayName,
-        assignee:
-          issue.fields.assignee !== null
-            ? issue.fields.assignee.displayName
-            : "Not added",
-        duedate:
-          issue.fields.duedate == null ? "Not added" : issue.fields.duedate,
-        sprint_start: issue.fields.customfield_10018[0].startDate
-          ? issue.fields.customfield_10018[0].startDate.substring(0, 10)
-          : "",
-        sprint_end: issue.fields.customfield_10018[0].endDate
-          ? issue.fields.customfield_10018[0].endDate.substring(0, 10)
-          : "",
-        number_of_sub_tasks: 0,
-        completed_sub_tasks: 0,
+        assignee: issue.fields.assignee !== null ? issue.fields.assignee.displayName: "Not added",
+        duedate: issue.fields.duedate == null ? "Not added" : issue.fields.duedate,
+        sprint_start: issue.fields.customfield_10018[0].startDate ? issue.fields.customfield_10018[0].startDate.substring(0, 10) : "",
+        sprint_end: issue.fields.customfield_10018[0].endDate ? issue.fields.customfield_10018[0].endDate.substring(0, 10) : "",
+        number_of_sub_tasks: issue.fields.subtasks.length,
+        completed_sub_tasks: issue.fields.subtasks.filter(subtask => subtask.fields.status.name === "Done").length,
+        subtasks: issue.fields.subtasks.map(subtask => {
+          return {
+            id: subtask.id,
+            subtask_key: subtask.key,
+            status: subtask.fields.status.name,
+            summary: subtask.fields.summary,
+          };
+        }),
       };
 
       story_subtask_map[story_id] = story;
       issues.push(story);
-    } else if (
-      issue.fields.issuetype.name === "Sub-task" &&
-      issue.fields.parent
-    ) {
-      const parent_id = issue.fields.parent.id;
-      const parent_story = story_subtask_map[parent_id];
-      if (parent_story) {
-        parent_story.number_of_sub_tasks++;
-        if (issue.fields.customfield_10020) {
-          parent_story.story_points += issue.fields.customfield_10020;
-        }
-        if (issue.fields.status.name === "Done") {
-          parent_story.completed_sub_tasks++;
-        }
-      }
     }
-  }
+    // else if (
+    //   issue.fields.issuetype.name === "Sub-task" &&
+    //   issue.fields.parent
+    // ) {
+    //   const parent_id = issue.fields.parent.id;
+    //   const parent_story = story_subtask_map[parent_id];
+    //   if (parent_story) {
+    //     parent_story.number_of_sub_tasks++;
+    //     if (issue.fields.customfield_10020) {
+    //       parent_story.story_points += issue.fields.customfield_10020;
+    //     }
+    //     if (issue.fields.status.name === "Done") {
+    //       parent_story.completed_sub_tasks++;
+    //     }
+    //   }
+    // }
+  } 
 
-  res.json({ issues });
+  res.json({
+    issues,
+   });
 });
 
 app.get("/sprint/:sprintId/progress", async (req, res) => {
@@ -337,6 +330,7 @@ app.get("/sprint/:sprintId/subtasks/progress", async (req, res) => {
     if (!status_category_map[key]) {
       status_category_map[key] = {
         story_id: subtask.story_id,
+        summary: subtask.issue_name,
         status_category_name: subtask.status_category_name,
         issue_count: 1,
         assignee: subtask.assignee,
@@ -456,8 +450,8 @@ app.get("/:boardID/stories", async (req, res) => {
           story_reviewers: issue.fields.customfield_10003
             ? issue.fields.customfield_10003.length !== 0
               ? issue.fields.customfield_10003
-                  .map((r, i) => r.displayName)
-                  .join(", ")
+                .map((r, i) => r.displayName)
+                .join(", ")
               : "Reviewers not added"
             : "Reviewers not added",
         };
@@ -605,7 +599,7 @@ app.get("/:boardID/sprint/story/progress", async (req, res) => {
 // for a specific board
 app.get("/:boardID/sprint/members", async (req, res) => {
   const board_id = req.params.boardID;
-  
+
   // Check if the data is already in the cache
   const cachedData = cache.get(board_id);
   if (cachedData) {
@@ -1597,7 +1591,7 @@ app.put("/lms/LandD/:employeeID/coursesvideolist/:courseID", async (req, res) =>
     // console.log("Employee found:", employee);
 
     // Find the index of the course in the CoursesAligned array
-    const course= employee.CoursesAligned.find(course => course._id.equals(courseID));
+    const course = employee.CoursesAligned.find(course => course._id.equals(courseID));
 
     if (!course) {
       console.log("Course not found");
@@ -1627,10 +1621,6 @@ app.put("/lms/LandD/:employeeID/coursesvideolist/:courseID", async (req, res) =>
   }
 });
 
-
-
-
-
 app.get("/lms/LandD/coursesvideolist", async (req, res) => {
   try {
     const data = await getCourse.find({});
@@ -1659,11 +1649,7 @@ app.get("/lms/LandD/:employeeID/coursesvideolist", async (req, res) => {
 });
 
 
-
-
-
-// get employee data with regex name............
-
+// get employee data from zoho with regex name............
 
 app.get("/getprofile", async (req, res) => {
   const { name } = req.query;
@@ -1687,15 +1673,6 @@ app.get("/getprofile", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-
-
-
-
-
-
-
-
 
 app.listen(PORT, () => {
   // // conole.log(`Server running on port ${PORT}...`);
