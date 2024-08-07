@@ -26,7 +26,7 @@ const getEmployeeCourses = require("./LMSandL&D/APIs/get_employee_courses");
 const bycrpt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const {FormatDate} = require('./Utils/FormatDate')
+const { GetRandomBGColor } = require('./Utils/GetRandomBGColor')
 
 // const summaryJsonpath = require("./boardsJson/summaryBoards.json")
 const fs = require("fs").promises;
@@ -34,6 +34,7 @@ const mongo_uri = process.env.MONGO_URI;
 const app = express();
 const mongoose = require("mongoose");
 const User = require("./Models/UserSchema");
+const Comments = require("./Models/CommentsSchema");
 const PORT = 8080;
 const getDate = (date) => moment(date).format("MMM Do YYYY, h:mm:ss A");
 // const PORT = 4000;
@@ -197,9 +198,54 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   const response = await getSprintIssues(sprint_id);
   const story_subtask_map = {};
   const issues = [];
+  let accountIdSet = new Set(); // Using a Set to ensure uniqueness
+  let members = [];
+  // let commitsData = []
+
+  // fetching the project data including project lead
+  const data = await get_board_metadata(board_id);
+  const project_data = [data?.location.projectKey, data?.location.projectId];
+  let project_key = project_data[0] !== null ? project_data[0] : project_data[1];
+  const dataForProjectLead = await get_project_data(project_key);
 
   for (let issue of response?.issues || []) {
     if (issue.fields.issuetype.name === "Story") {
+      //for fetching members
+      if (issue.fields.assignee) {
+        let accountId = issue.fields.assignee.accountId.toString();
+        if (!accountIdSet.has(accountId)) {
+          let member = {
+            account_id: accountId,
+            fullName: issue.fields.assignee.displayName,
+            cardName: issue.fields.assignee.displayName
+              .substring(0, 2)
+              .toUpperCase(),
+            bgColor: GetRandomBGColor(),
+            emailAddress: issue.fields.assignee.emailAddress
+          };
+          members.push(member);
+          accountIdSet.add(accountId);
+        }
+      }
+
+      //for gitCommits
+      // const githubCommits = await getGithubCommits(issue.id);
+      // commitsData.push(githubCommits)
+      // const IssueCommits =
+      //   githubCommits?.detail?.flatMap((detail) =>
+      //     detail.repositories.flatMap((repo) =>
+      //       repo.commits.map((commit) => ({
+      //         message: commit.message,
+      //         authorTimestamp: commit.authorTimestamp,
+      //         // authorTimestamp: formatDate(commit.authorTimestamp),
+      //         repositoryName: repo.name,
+      //         repositoryUrl: repo.url,
+      //         filesChanged: commit.files.length,
+      //         commitUrl: commit.url,
+      //       }))
+      //     )
+      //   ) || []
+
       const story_id = issue.id;
       //for calculating the sprint duration and days spent
       const sprintStartDate = new Date(issue.fields.sprint?.startDate.split('T')[0])
@@ -210,22 +256,24 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
       const adjustedCurrentDate = new Date(Math.min(currentDate, sprintEndDate));
       // Calculate whole sprint duration in days
       // Extracting only the date part
-      const sprintStartDateStr = sprintStartDate.toISOString().substring(0, 10);
-      const sprintEndDateStr = sprintEndDate.toISOString().substring(0, 10);
-      const currentDateStr = adjustedCurrentDate.toISOString().substring(0, 10);
-      const sprintDuration = Math.ceil((new Date(sprintEndDateStr) - new Date(sprintStartDateStr)) / (1000 * 60 * 60 * 24));
-      const daysSpent = Math.ceil((Math.min(new Date(currentDateStr), new Date(sprintEndDateStr)) - new Date(sprintStartDateStr)) / (1000 * 60 * 60 * 24));
-     
-     
+      // const sprintStartDateStr = sprintStartDate.toISOString().substring(0, 10);
+      // const sprintEndDateStr = sprintEndDate.toISOString().substring(0, 10);
+      // const currentDateStr = adjustedCurrentDate.toISOString().substring(0, 10);
+      const sprintDuration = Math.ceil((new Date(sprintEndDate) - new Date(sprintStartDate)) / (1000 * 60 * 60 * 24));
+      const daysSpent = Math.ceil((Math.min(new Date(currentDate), new Date(sprintEndDate)) - new Date(sprintStartDate)) / (1000 * 60 * 60 * 24));
+
       const story = {
         story_id: story_id,
         story_key: issue?.key,
         story_name: issue?.fields?.summary,
         story_type: issue?.fields?.issuetype?.name,
         story_status: issue?.fields?.status?.statusCategory?.name,
-        project_id: issue?.fields?.project?.id,
-        project_name: issue?.fields?.project?.name,
-        project_key: issue?.fields?.project?.key,
+        projectData: {
+          project_id: issue?.fields?.project?.id,
+          project_name: issue?.fields?.project?.name,
+          project_key: issue?.fields?.project?.key,
+          project_lead: dataForProjectLead?.lead.displayName ? dataForProjectLead.lead.displayName : "",
+        },
         board_id: board_id,
         board_name: board_name,
         status_name: issue?.fields?.status?.name,
@@ -272,10 +320,9 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
             changedFrom: lastChange?.fromString,
             changedTo: lastChange?.toString,
           };
-        })
+        }),
+        // commits: IssueCommits
       };
-
-
       story_subtask_map[story_id] = story;
       issues.push(story);
     }
@@ -327,10 +374,195 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   }
 
   res.json({
-    issues
-    // response
+    issues,
+    members,
   });
 });
+
+// get gitlogs data
+app.post("/sprint/gitdata", async (req, res) => {
+  try {
+    const boards = req.body;
+    // console.log(boards, "git....");
+    const results = [];
+
+    for (const board of boards) {
+      // for (const sprint of board.sprints) {
+      const board_id = board.board_id;
+      const board_name = board.board_name;
+      const sprint_id = board.sprint_id;
+      const sprint_name = board.sprint_name;
+      const sprint_status = board.sprint_status;
+      const sprint_start = board.sprint_start;
+      const sprint_end = board.sprint_end;
+
+      const response = await getSprintIssues(sprint_id);
+
+      const issues = [];
+
+      // Filter and process issues
+      for (let issue of response?.issues || []) {
+        // if (isTodayOrYesterday(issue.fields.updated)) {
+        if (issue.fields.updated) {
+          const { fields } = issue;
+          const {
+            status,
+            issuetype,
+            project,
+            customfield_10018,
+            customfield_10156,
+            timetracking,
+            customfield_10003,
+            customfield_10020,
+            creator,
+            assignee,
+            duedate,
+          } = fields;
+
+          let story = {
+            story_id: issue.id,
+            story_name: fields.summary,
+            story_type: issuetype.name,
+            story_status: status.statusCategory.name,
+            project_id: project.id,
+            project_name: project.name,
+            status_name: status.name,
+            sprint_id: customfield_10018[0].id.toString(),
+            sprint_name: customfield_10018[0].name,
+            story_ac_hygiene: customfield_10156 ? "YES" : "NO",
+            original_estimate: timetracking.originalEstimate || "Not added",
+            remaining_estimate: timetracking.remainingEstimate || "Not added",
+            time_spent: timetracking.timeSpent || "Not added",
+            story_reviewers: customfield_10003
+              ? customfield_10003.length !== 0
+                ? customfield_10003.map((r) => r.displayName).join(", ")
+                : "Reviewers not added"
+              : "Reviewers not added",
+            story_points: customfield_10020 == null ? 0 : customfield_10020,
+            updated: fields.updated,
+            creator: creator.displayName,
+            assignee: assignee ? assignee.displayName : "Not added",
+            duedate: duedate ? duedate : "Not added",
+            sprint_start: customfield_10018[0].startDate
+              ? customfield_10018[0].startDate.substring(0, 10)
+              : "",
+            sprint_end: customfield_10018[0].endDate
+              ? customfield_10018[0].endDate.substring(0, 10)
+              : "",
+          };
+
+          issues.push(story);
+        }
+      }
+
+      // Fetch GitHub data for each story and construct the response
+      const githubResponses = await Promise.all(
+        issues.map(async (story) => {
+          const githubCommits = await getGithubCommits(story.story_id);
+
+          const commits =
+            githubCommits?.detail?.flatMap((detail) =>
+              detail.repositories.flatMap((repo) =>
+                repo.commits.map((commit) => ({
+                  assignee: story.assignee,
+                  sprint_name: story.sprint_name,
+                  sprint_id: story.sprint_id,
+                  story_name: story.story_name,
+                  story_id: story.story_id,
+                  message: commit.message,
+                  authorTimestamp: commit.authorTimestamp,
+                  // authorTimestamp: formatDate(commit.authorTimestamp),
+                  repositoryName: repo.name,
+                  repositoryUrl: repo.url,
+                  filesChanged: commit.files.length,
+                  commitUrl: commit.url,
+                }))
+              )
+            ) || [];
+          return commits;
+        })
+      );
+
+      // Flatten the array of arrays
+      const flatCommits = githubResponses.flat();
+      results.push({
+        board_id,
+        board_name,
+        sprint_name,
+        sprint_id,
+        sprint_status,
+        sprint_start,
+        sprint_end,
+        commits: flatCommits,
+      });
+      // }
+    }
+
+    res.json(results);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//fetching gitLogs for specific sprint
+app.get('/:boardId/:boardName/sprint/:sprintId/gitLogs', async (req, res) => {
+  const { boardId, boardName, sprintId } = req.params
+  try {
+    const response = await getSprintIssues(sprintId);
+
+    const commits = [];
+
+    for (let issue of response?.issues || []) {
+      if (issue.fields.issuetype.name === "Story") {
+        const story_id = issue.id;
+        const githubCommits = await getGithubCommits(issue.id);
+        const IssueCommit =
+          githubCommits?.detail?.flatMap((detail) =>
+            detail.repositories.flatMap((repo) =>
+              repo.commits.map((commit) => ({
+                board_id: boardId,
+                board_name: boardName,
+                sprint_id: sprintId,
+                sprint_name: issue?.fields?.sprint?.name,
+                sprint_start: issue?.fields?.sprint?.startDate ? getDate(issue.fields.sprint.startDate) : "",
+                sprint_end: issue?.fields?.sprint?.endDate ? getDate(issue.fields.sprint.endDate) : "",
+                story_id: story_id,
+                story_key: issue?.key,
+                story_name: issue?.fields?.summary,
+                story_type: issue?.fields?.issuetype?.name,
+                story_status: issue?.fields?.status?.statusCategory?.name,
+                status_name: issue?.fields?.status?.name,
+                creator: issue?.fields?.creator?.displayName,
+                assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
+                email: issue?.fields?.assignee?.emailAddress,
+                commitMessage: commit.message,
+                commitTimeStamp: commit.authorTimestamp,
+                // authorTimestamp: formatDate(commit.authorTimestamp),
+                repositoryName: repo.name,
+                repositoryUrl: repo.url,
+                filesChanged: commit.files.length,
+                commitUrl: commit.url,
+              }))
+            )
+          ) || []
+        //if there is no commit for a issue, skip it no need to push in commits
+        if (IssueCommit.length == []) continue
+        else commits.push(IssueCommit);
+
+      }
+    }
+    res.json(commits);
+  } catch (error) {
+    res.json(
+      error
+    )
+
+  }
+
+
+
+})
 
 app.get("/sprint/:sprintId/progress", async (req, res) => {
   const sprint_id = req.params.sprintId;
@@ -456,7 +688,6 @@ app.get("/sprint/:sprintId/members", async (req, res) => {
 
     res.json({
       members,
-      data: data
     });
     // conole.log({ members });
   } catch (error) {
@@ -1203,12 +1434,12 @@ app.post("/allboards/activesprints", async (req, res) => {
         let totalStoriesPoints = 0
         let totalInProgressPoints = 0
         //for getting the total story points for each sprint
-        for (let i = 0; i < stories.length; i++){
+        for (let i = 0; i < stories.length; i++) {
           totalStoriesPoints = totalStoriesPoints + (stories[i].fields.customfield_10020 == null ? 0 : stories[i].fields.customfield_10020)
         }
         //for getting the total story points in progress currently
         in_progress_stories?.forEach(story => {
-          totalInProgressPoints = totalInProgressPoints + (story.fields.customfield_10020 == null ? 0 : story.fields.customfield_10020) 
+          totalInProgressPoints = totalInProgressPoints + (story.fields.customfield_10020 == null ? 0 : story.fields.customfield_10020)
         });
         //for getting the total members working in each sprint
         const uniqueAssignees = {};
@@ -1421,130 +1652,6 @@ const formatDate = (dateStr) =>
     .toLocaleString("sv-SE", { timeZone: "Asia/Kolkata", hour12: false })
     .replace(" ", "T") + dateStr.slice(-5).replace(":", "");
 
-// get gitlogs data
-app.post("/sprint/gitdata", async (req, res) => {
-  try {
-    const boards = req.body;
-    // console.log(boards, "git....");
-    const results = [];
-
-    for (const board of boards) {
-      // for (const sprint of board.sprints) {
-      const board_id = board.board_id;
-      const board_name = board.board_name;
-      const sprint_id = board.sprint_id;
-      const sprint_name = board.sprint_name;
-      const sprint_status = board.sprint_status;
-      const sprint_start = board.sprint_start;
-      const sprint_end = board.sprint_end;
-      const response = await getSprintIssues(sprint_id);
-
-      const issues = [];
-
-      // Filter and process issues
-      for (let issue of response?.issues || []) {
-        // if (isTodayOrYesterday(issue.fields.updated)) {
-        if (issue.fields.updated) {
-          const { fields } = issue;
-          const {
-            status,
-            issuetype,
-            project,
-            customfield_10018,
-            customfield_10156,
-            timetracking,
-            customfield_10003,
-            customfield_10020,
-            creator,
-            assignee,
-            duedate,
-          } = fields;
-
-          let story = {
-            story_id: issue.id,
-            story_name: fields.summary,
-            story_type: issuetype.name,
-            story_status: status.statusCategory.name,
-            project_id: project.id,
-            project_name: project.name,
-            status_name: status.name,
-            sprint_id: customfield_10018[0].id.toString(),
-            sprint_name: customfield_10018[0].name,
-            story_ac_hygiene: customfield_10156 ? "YES" : "NO",
-            original_estimate: timetracking.originalEstimate || "Not added",
-            remaining_estimate: timetracking.remainingEstimate || "Not added",
-            time_spent: timetracking.timeSpent || "Not added",
-            story_reviewers: customfield_10003
-              ? customfield_10003.length !== 0
-                ? customfield_10003.map((r) => r.displayName).join(", ")
-                : "Reviewers not added"
-              : "Reviewers not added",
-            story_points: customfield_10020 == null ? 0 : customfield_10020,
-            updated: fields.updated,
-            creator: creator.displayName,
-            assignee: assignee ? assignee.displayName : "Not added",
-            duedate: duedate ? duedate : "Not added",
-            sprint_start: customfield_10018[0].startDate
-              ? customfield_10018[0].startDate.substring(0, 10)
-              : "",
-            sprint_end: customfield_10018[0].endDate
-              ? customfield_10018[0].endDate.substring(0, 10)
-              : "",
-          };
-
-          issues.push(story);
-        }
-      }
-
-      // Fetch GitHub data for each story and construct the response
-      const githubResponses = await Promise.all(
-        issues.map(async (story) => {
-          const githubCommits = await getGithubCommits(story.story_id);
-
-          const commits =
-            githubCommits?.detail?.flatMap((detail) =>
-              detail.repositories.flatMap((repo) =>
-                repo.commits.map((commit) => ({
-                  assignee: story.assignee,
-                  sprint_name: story.sprint_name,
-                  sprint_id: story.sprint_id,
-                  story_name: story.story_name,
-                  story_id: story.story_id,
-                  message: commit.message,
-                  authorTimestamp: commit.authorTimestamp,
-                  // authorTimestamp: formatDate(commit.authorTimestamp),
-                  repositoryName: repo.name,
-                  repositoryUrl: repo.url,
-                  filesChanged: commit.files.length,
-                  commitUrl: commit.url,
-                }))
-              )
-            ) || [];
-          return commits;
-        })
-      );
-
-      // Flatten the array of arrays
-      const flatCommits = githubResponses.flat();
-      results.push({
-        board_id,
-        board_name,
-        sprint_name,
-        sprint_id,
-        sprint_status,
-        sprint_start,
-        sprint_end,
-        commits: flatCommits,
-      });
-      // }
-    }
-
-    res.json(results);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
 
 // LMS and L&D
 app.post("/lms/LandD/tracking", async (req, res) => {
@@ -1806,19 +1913,19 @@ app.get("/getprofile", async (req, res) => {
 });
 
 app.post('/registration', async (req, res) => {
-  const { name, email, profileImage } = req.body
+  const { name, email, profileImage, role } = req.body
   try {
     const findUser = await User.findOne({ email: email })
     if (findUser) {
       return res.status(200).json({
-        message: "user already exist"
+        user: findUser
       })
     }
-    const newUser = await User.create({ name: name, email: email, profileImage: profileImage })
-    const saveUser = newUser.save()
+    const user = await User.create({ name: name, email: email, profileImage: profileImage, role: role })
+    const saveUser = await user.save()
     res.status(201).json({
       message: "new user created",
-      newUser
+      user
     })
   } catch (error) {
     console.log(error)
@@ -1829,9 +1936,22 @@ app.post('/registration', async (req, res) => {
 
 })
 
+app.post('/saveComment', async (req, res) => {
+  const { author, email, commentMessage, commentLevel} = req.body
+  try {
+    const comment = await Comments.create({ author: author, email: email, commentMessage: commentMessage, commentLevel: commentLevel })
+    const saveComment = await comment.save()
+    res.status(201).json({
+      message: "Comment added ",
+    })
+  } catch (error) {
+    console.log(error)
+    res.status(404).json({
+      message: error
+    })
+  }
 
-
-
+})
 
 
 
