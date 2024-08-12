@@ -1937,12 +1937,28 @@ app.post('/registration', async (req, res) => {
 })
 
 app.post('/saveComment', async (req, res) => {
-  const { author, email, commentMessage, commentLevel} = req.body
+  const { author, email, commentMessage, commentLevel, boardId, sprintId } = req.body
   try {
-    const comment = await Comments.create({ author: author, email: email, commentMessage: commentMessage, commentLevel: commentLevel })
+    const comment = await Comments.create({ author: author, email: email, commentMessage: commentMessage, commentLevel: commentLevel, boardId: boardId, sprintId: sprintId })
     const saveComment = await comment.save()
     res.status(201).json({
       message: "Comment added ",
+    })
+  } catch (error) {
+    console.log(error)
+    res.status(404).json({
+      message: error
+    })
+  }
+
+})
+
+app.get('/getAllComments', async (req, res) => {
+  try {
+    const comments = await Comments.find()
+    res.status(201).json({
+      comments: comments,
+      message: "Comments fetched ",
     })
   } catch (error) {
     console.log(error)

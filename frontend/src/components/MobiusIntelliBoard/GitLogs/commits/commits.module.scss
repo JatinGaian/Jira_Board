@@ -1,0 +1,40 @@
+@use "../../../../mixin.module.scss";
+@import "../../../../mixin.module.scss";
+@import url(https://fonts.googleapis.com/css?family=Manrope:200,300,regular,500,600,700,800);
+
+.mainContainer {
+  width: 100%;
+  height: auto;
+  @include mixin.flex-container(row, flex-start, flex-start, 1rem);
+  padding: 0.7rem;
+  .commitContent {
+    width: 100%;
+    height: auto;
+    @include mixin.flex-container(column, flex-start, flex-start);
+    .heading {
+      width: 100%;
+      @include mixin.flex-container(row, space-between, flex-start);
+      > p {
+        font-weight: 600;
+        font-size: clamp(0.068125rem, -0.0002rem + 1.0938vw, 6.8359375rem);
+        color: black;
+      }
+    }
+    > p {
+      width: 100%;
+      font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+      font-weight: 400;
+      color: #000000d9;
+      margin-bottom: .3rem;
+    }
+    > div {
+      // width: 23vw;
+      // overflow: hidden;
+      height: auto;
+      color: #00000073;
+      font-size: clamp(0.068125rem, -0.0002rem + 1.0938vw, 6.8359375rem);
+      font-weight: 400;
+    }
+  }
+  border-bottom: 0.01rem solid #f0f0f0;
+}

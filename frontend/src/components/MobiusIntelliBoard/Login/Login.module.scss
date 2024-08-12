@@ -1,0 +1,72 @@
+@use "../../../mixin.module.scss";
+@import "../../../mixin.module.scss";
+@import url(https://fonts.googleapis.com/css?family=Manrope:200,300,regular,500,600,700,800);
+@import url(https://fonts.googleapis.com/css?family=Plus+Jakarta+Sans:200,300,regular,500,600,700,800,200italic,300italic,italic,500italic,600italic,700italic,800italic);
+
+.mainContainer {
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(to right, #222536, #0e4b9c);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  .left {
+    width: 40%;
+    @include mixin.flex-container(column, flex-start, flex-start);
+    p {
+      font-family: Manrope;
+      color: #ffffff;
+      overflow: unset;
+      &:first-child {
+        font-size: 1.66666666666667vw;
+        font-weight: 500;
+        line-height: 2.22222222222222vw;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+      &:nth-child(2) {
+        font-size: 4.44444444444444vw;
+        font-weight: 200;
+        text-align: center;
+        margin-bottom: .5rem;
+      }
+      &:nth-child(3),
+      &:nth-child(4) {
+        font-size: 1.66666666666667vw;
+        font-weight: 200;
+        text-align: justified;
+        margin-bottom: 0rem;
+      }
+    }
+    button {
+      img {
+        width: 44px;
+        height: 44px;
+      }
+      @include mixin.flex-container(row, center, center, 1rem);
+      width: 100%;
+      height: 10vh;
+      margin-top: 2rem;
+      background-color: white;
+      outline: none;
+      border: none;
+      //   border: 0.2rem solid rgb(217, 217, 217);
+      padding: 0.3rem 1rem;
+      border-radius: 1rem;
+      font-family: Plus Jakarta Sans;
+      font-size: 24px;
+      font-weight: 400;
+      line-height: 32px;
+      text-align: center;
+      color: #222639;
+    }
+  }
+  .right{
+    width: 50%;
+    img{
+      width: 100%;
+    background-color: transparent;  
+    }
+  }
+}

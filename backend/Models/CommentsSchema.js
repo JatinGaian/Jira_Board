@@ -5,7 +5,9 @@ const CommentSchema = new Schema({
     author: { type: String, required: true },
     email: { type: String, required: true },
     commentMessage: { type: String, required: true },
-    commentLevel: { type: String, required: true},
+    commentLevel: { type: String, required: true },
+    boardId: { type: String },
+    sprintId: { type: String },
     createdAt: { type: Date, default: Date.now },
 
 });
