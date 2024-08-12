@@ -11,9 +11,9 @@
   @include mixin.flex-container(column, flex-start, flex-start, 1rem);
 
   .sprintInfo {
-     @media screen and (min-height: 0px) and (max-height: 1020px) {
-        height: 18vh;
-      }
+    @media screen and (min-height: 0px) and (max-height: 1020px) {
+      height: 18vh;
+    }
     // width: 92.22vw;
     width: 100%;
     height: 15.42vh;
@@ -127,10 +127,23 @@
     width: 100%;
     @include mixin.flex-container(row, flex-start, flex-start, 1rem);
     .left {
-      width: auto;
+      &::-webkit-scrollbar {
+        height: 0px;
+        width: 0rem;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #9f84fd;
+        border-radius: 6px;
+        width: 0.1rem;
+      }
+      width: 70vw;
+      max-height: 61vh;
+      // background-color: black;
+      overflow: scroll;
       @include mixin.flex-container(column, flex-start, flex-start, 1rem);
       .burnDownChartContainer {
-        width: 61vw;
+        width: 60vw;
         height: 40vh;
         background-color: white;
         border-radius: 1rem;
@@ -179,9 +192,9 @@
             display: none;
           }
         }
-        width: 61vw;
-        height: 19vw;
-        overflow: hidden;
+        width: 60vw;
+        height: 25vw;
+        // overflow: hidden;
         background-color: #ffffff;
         padding-inline: 1.4rem;
         border-radius: 1rem;
