@@ -12,10 +12,10 @@ yarn-error.log
 *.swp
 
 # # Environment variables
-# .env.local
-# .env.development.local
-# .env.test.local
-# .env.production.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Dependency directories
 /pnpm-store/

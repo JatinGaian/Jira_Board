@@ -1,0 +1,111 @@
+@use "../../mixin.module.scss";
+@import "../../mixin.module.scss";
+
+#lightMode {
+  .sidePanel {
+    background-color: white;
+    color: $grey;
+    // img {
+    //   width: 10px;
+    // }
+    div {
+      //   cursor: pointer;
+    }
+  }
+}
+.mainContainer {
+  .sidePanel {
+    min-width:4vw;
+    max-width:4vw;
+    min-height: 100vh;
+    background-color: black;
+    color: white;
+    overflow: hidden;
+    z-index: 10;
+    @include mixin.flex-container(column, flex-start, flex-start);
+    transition: min-width ease-in-out 0.2s;
+    &:hover {
+      min-width: 20vw;
+      .selectContainer {
+        > div {
+          #arrow {
+            display: block;
+          }
+        }
+      }
+    }
+    .header {
+      height: 3vw;
+      padding-left: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+      @include mixin.flex-container(row, flex-start, center, 1rem);
+      img {
+        min-width: 35px;
+        max-width: 35px;
+      }
+      p {
+        background: linear-gradient(45deg, $primary, #ff00a6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+        font-weight: 700;
+      }
+    }
+    .selectContainer {
+      width: 100%;
+      max-height: 3vw;
+      transition: all ease-in-out 0.1s;
+      overflow: hidden;
+      position: relative;
+      &:hover {
+        max-height: fit-content;
+        > div {
+          #arrow {
+            transform: rotate(0deg);
+          }
+        }
+      }
+      > div {
+        width: 100%;
+        height: 3vw;
+        padding-left: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+        padding-right: 0.4rem;
+        @include mixin.flex-container(row, flex-start, center, 1.1rem);
+        > img {
+          min-width: 30px;
+          max-width: 30px;
+        }
+        p {
+          width: 100%;
+          padding: 0.1rem 0.6rem;
+          border-radius: 0.2rem;
+
+          &:hover {
+            background-color: $greyBg;
+            box-shadow: 0px 2px 5px 0px #d6d6d6;
+          }
+        }
+        #arrow {
+          position: absolute;
+          display: none;
+          transition: all ease-in-out 0.2s;
+          right: 15px;
+          max-width: 15px;
+          min-width: 15px;
+          transform: rotate(-90deg);
+        }
+      }
+      .selectedItem {
+        p {
+          background-color: $lightAquaBlueBg;
+          color: $lightAquaBlue;
+        }
+      }
+    }
+    // div {
+    //   cursor: pointer;
+    // }
+  }
+  p {
+    cursor: pointer;
+  }
+}

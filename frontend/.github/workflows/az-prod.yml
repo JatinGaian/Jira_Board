@@ -1,0 +1,130 @@
+##Github workflow
+name: CI, CD, CT for portal UI
+
+env:
+  ENVIRONMENT: prod
+  ARTIFACT_RETENTION_DAYS: 10
+  DEPLOYMENT_PLATFORM: az
+# Events
+on:
+  push:
+    branches: [ prod ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    outputs:
+      deploymentPlatform: ${{ steps.init.outputs.deploymentPlatform }}
+
+    steps:
+      - name: Environment variables to output
+        id: init
+        run: |
+          echo "deploymentPlatform=${{ env.DEPLOYMENT_PLATFORM }}" >> $GITHUB_OUTPUT
+  RUN_ON_AZ:
+
+     name: RUN_ON_AZ
+     needs: build
+     runs-on: ubuntu-latest
+
+     if: needs.build.outputs.deploymentPlatform == 'az'
+
+     steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          export NODE_OPTIONS=--max_old_space_size=4096
+          npm i -f 
+      - name: Build
+        run: |
+          export NODE_OPTIONS=--max_old_space_size=4096
+          npm run build
+      - name: copy file via ssh key
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.MIA_HOST }}
+          username: ${{ secrets.MIA_USERNAME }}
+          port: ${{ secrets.PORT }}
+          key: ${{ secrets.KEY }}
+          # passphrase: ${{ secrets.PASSPHASE }}
+          source: "build/*"
+          target: /home/mobius-prod/cerebro/
+          
+      - name: executing remote ssh commands using ssh key
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.MIA_HOST }}
+          username: ${{ secrets.MIA_USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: rsync -avzh /home/mobius-prod/cerebro/build/* /var/www/cerebro/
+############################################################
+# name: CI, CD, CT for experience-builder UI
+
+# env:
+#   ENVIRONMENT: prod
+#   ARTIFACT_RETENTION_DAYS: 10
+#   DEPLOYMENT_PLATFORM: az
+
+# # Events
+# on:
+#   push:
+#      branches: [ prod ]
+
+# jobs:
+#   ########## job to build the package and deploy to sonar for code analysis
+
+#   build:
+#     name: Build
+#     runs-on: ubuntu-latest         
+#     outputs:
+#       deploymentPlatform: ${{ steps.init.outputs.deploymentPlatform }}
+    
+#     steps:        
+#       - name: Environment variables to output 
+#         id: init
+#         run: |
+#           echo "deploymentPlatform=${{ env.DEPLOYMENT_PLATFORM }}" >> $GITHUB_OUTPUT
+          
+#   RUN_ON_AZ:
+  
+#     name: RUN_ON_AZ
+#     needs: build
+#     runs-on: ubuntu-latest
+    
+#     if: needs.build.outputs.deploymentPlatform == 'az'
+
+#     steps:
+
+#       - name: Checkout the repository
+#         uses: actions/checkout@v2
+
+#       - name: Azure login
+#         id: login
+#         uses: azure/login@v1.4.3
+#         with:
+#           creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+#       - name: Install dependencies
+#         run: npm i -f 
+
+#       - name: Build
+#         run: npm run build
+        
+#       - name: Publish app
+#         uses: Azure/cli@v1.0.0
+#         with:
+#           azcliversion: latest
+#           inlineScript: |
+#             az storage blob upload-batch -s $GITHUB_WORKSPACE/build -d \$web --account-name sprintreviewdashboardui --overwrite
+
+#       - name: Purge CDN
+#         run:
+#           az afd endpoint purge -g mobius-prod-rg --profile-name mobius-prod-cdn-3 --domains cerebro.mobiusdtaas.ai --endpoint-name cerebromobiusdtaasai --content-paths '/*'
+          
+#       - name: Azure service principal logout
+#         run: |
+#           az logout

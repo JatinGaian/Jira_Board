@@ -1,0 +1,170 @@
+@use "../../../mixin.module.scss";
+@import "../../../mixin.module.scss";
+@import url(https://fonts.googleapis.com/css?family=Manrope:200,300,regular,500,600,700,800);
+
+.mainContainer {
+  min-width: 96vw;
+  min-height: 100vh;
+  background-color: #f5f6f7;
+  padding-inline: 1.6vw;
+  font-family: Manrope;
+  @include mixin.flex-container(column, flex-start, flex-start, 1rem);
+
+  .tabsContainer {
+     @media screen and (min-height: 0px) and (max-height: 1020px) {
+        height: 18vh;
+      }
+    width: 100%;
+    height: 15.42vh;
+    background-color: #ffffff;
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+    padding-inline: 1.6vw;
+
+    .breadcrumb {
+      width: 100%;
+      height: 30%;
+      @include mixin.flex-container(column, flex-end, flex-start);
+      font-size: clamp(0.75rem, 0rem + 0.9375vw, 2.25rem);
+      font-weight: 400;
+      color: #8f97a2;
+    }
+    > p {
+      width: 100%;
+      height: 35%;
+      @include mixin.flex-container(column, flex-end, flex-start);
+      font-size: clamp(1.5rem, 0rem + 1.875vw, 4.5rem);
+      font-weight: 700;
+      color: #445164;
+    }
+    .tabs {
+      width: 100%;
+      height: 35%;
+      @include mixin.flex-container(row, flex-start, flex-end, 1.8rem);
+      > p {
+        padding-bottom: 0.4rem;
+        font-size: clamp(1rem, 0rem + 1.25vw, 3rem);
+        cursor: pointer;
+      }
+      .tab {
+        font-weight: 400;
+        color: #8f97a2;
+        border-bottom: 0.1rem solid #ffffff;
+      }
+
+      .selectedTab {
+        color: #5e43d8;
+        border-bottom: 0.1rem solid #5e43d8;
+      }
+    }
+  }
+
+  .cardsContainer {
+    width: 100%;
+    // height: 14vh;
+    background-color: transparent;
+    @include mixin.flex-container(row, flex-start, flex-start, 1rem);
+    flex-wrap: wrap;
+    // overflow: scroll;
+    .card {
+      @media screen and (min-height: 0px) and (max-height: 1020px) {
+        height: 12vh;
+      }
+      flex: 1;
+      height: 9.5vh;
+      background-color: #ffffff;
+      border-radius: 1rem;
+      border: 0.1rem solid #eaecf0;
+      @include mixin.flex-container(column, center, center, 0.4rem);
+      box-shadow: 0 4px 16px -2px rgba(27, 37, 51, 0.06);
+      padding: 1rem;
+      .info {
+        width: 100%;
+        height: 70%;
+        @include mixin.flex-container(row, space-between, flex-start);
+        font-size: clamp(2.5rem, 0rem + 3.125vw, 7.5rem);
+        font-weight: 600;
+        color: #445164;
+        > p {
+          height: 100%;
+          @include mixin.flex-container(column, center, center);
+        }
+        .img {
+          margin-top: 0.5rem;
+        }
+      }
+      > p {
+        width: 100%;
+        min-height: 40%;
+        font-size: clamp(0.068125rem, -0.0002rem + 1.0938vw, 6.8359375rem);
+        color: #8f97a2;
+      }
+    }
+  }
+
+  .BarChartContainer {
+    width: 100%;
+    height: 55vh;
+    background-color: white;
+    border-radius: 1rem;
+    padding: 1rem;
+    padding-inline: 1.4rem;
+    &:hover {
+      .heading {
+        > div {
+          display: block;
+          .commentButton {
+          }
+        }
+      }
+    }
+    .heading {
+      width: 100%;
+      height: 4vh;
+      > p {
+        font-size: clamp(0.068125rem, -0.0002rem + 1.0938vw, 6.8359375rem);
+        font-weight: 600;
+      }
+      @include mixin.flex-container(row, space-between, flex-start);
+      > div {
+        position: relative;
+        width: 50%;
+        height: 100%;
+        display: none;
+        .commentButton {
+          position: absolute;
+          right: 0;
+          top: 0;
+          cursor: pointer;
+        }
+      }
+    }
+    .barChart {
+      width: 100%;
+      height: 40vh;
+      margin-top: 0.5rem;
+      overflow: scroll;
+    }
+
+    .legend {
+      width: 100%;
+      height: 8vh;
+      @include mixin.flex-container(row, flex-start, center, 0.8em);
+      // padding-inline: clamp(0.5rem, 0rem + 0.625vw, 1.5rem);
+      padding-left: 2rem;
+      > div {
+        @include mixin.flex-container(row, center, center, 0.5rem);
+        span {
+          min-width: clamp(0.068125rem, -0.0002rem + 1.0938vw, 6.8359375rem);
+          min-height: clamp(0.068125rem, -0.0002rem + 1.0938vw, 6.8359375rem);
+          border-radius: 0.2rem;
+        }
+        p {
+          font-size: clamp(0.555625rem, 0rem + 0.6945vw, 1.666875rem);
+          font-weight: 400;
+          color: #445164;
+        }
+      }
+    }
+  }
+}
