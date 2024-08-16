@@ -8,6 +8,8 @@ const CommentSchema = new Schema({
     commentLevel: { type: String, required: true },
     boardId: { type: String },
     sprintId: { type: String },
+    boardName: {type: String},
+    sprintName:{type: String},
     createdAt: { type: Date, default: Date.now },
 
 });

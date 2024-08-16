@@ -35,6 +35,7 @@ const app = express();
 const mongoose = require("mongoose");
 const User = require("./Models/UserSchema");
 const Comments = require("./Models/CommentsSchema");
+const get_issues_for_selected_member = require("./APIs/get_issues_for_selected_member");
 const PORT = 8080;
 const getDate = (date) => moment(date).format("MMM Do YYYY, h:mm:ss A");
 // const PORT = 4000;
@@ -88,7 +89,9 @@ app.get("/:boardId/allSprints", async (req, res) => {
   const data = await getSprints(board_id);
   let sprints = data?.values ? data.values : [];
   // conole.log(sprints);
-  res.json(sprints);
+  res.json({
+    sprints
+  });
 });
 
 // ALerts for story completion
@@ -195,6 +198,10 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   const board_id = req.params.boardId;
   const board_name = req.params.boardName;
 
+  const sprintList = await getSprints(board_id);
+  const currentSprint = sprintList?.values?.find(sprint => sprint?.id == sprint_id)
+
+
   const response = await getSprintIssues(sprint_id);
   const story_subtask_map = {};
   const issues = [];
@@ -277,7 +284,11 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
         board_id: board_id,
         board_name: board_name,
         status_name: issue?.fields?.status?.name,
-        sprint_id: sprint_id == issue?.fields?.sprint?.id ? sprint_id : "id doesn't match",
+        sprint_id: currentSprint?.id,
+        sprint_state: currentSprint?.state,
+        sprint_name: currentSprint?.name,
+        sprint_start: getDate(currentSprint?.startDate),
+        sprint_end: getDate(currentSprint?.endDate),
         story_ac_hygiene: issue?.fields?.customfield_10156 !== null ? "YES" : "NO",
         original_estimate: getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
         remaining_estimate: getDate(issue?.fields?.timetracking?.remainingEstimate) || "Not added",
@@ -293,9 +304,6 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
         assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
         email: issue?.fields?.assignee?.emailAddress,
         duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue.fields.customfield_10018.length - 1]?.endDate : issue.fields.duedate),
-        sprint_start: issue?.fields?.sprint?.startDate ? getDate(issue.fields.sprint.startDate) : "",
-        sprint_end: issue?.fields?.sprint?.endDate ? getDate(issue.fields.sprint.endDate) : "",
-        sprint_name: issue?.fields?.sprint?.name,
         sprintDuration: sprintDuration,
         daysSpent: daysSpent,
         number_of_sub_tasks: issue?.fields?.subtasks?.length,
@@ -376,6 +384,7 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   res.json({
     issues,
     members,
+    currentSprint: currentSprint
   });
 });
 
@@ -692,6 +701,150 @@ app.get("/sprint/:sprintId/members", async (req, res) => {
     // conole.log({ members });
   } catch (error) {
     console.error("Error fetching sprint members:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// issues for selected members
+app.get("/issuesForUser", async (req, res) => {
+  try {
+    const { username } = req.query; // User's Jira username from query parameter
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+    const response = await get_issues_for_selected_member(username);
+    for (let issue of response?.issues || []) {
+      if (issue.fields.issuetype.name === "Story") {
+        const story_id = issue.id;
+        //for calculating the sprint duration and days spent
+        const sprintStartDate = new Date(issue.fields.customfield_10018[0]?.startDate.split('T')[0])
+        const sprintEndDate = new Date(issue.fields.customfield_10018[0]?.endDate.split('T')[0]);
+        // Get the actual current date
+        const currentDate = new Date(new Date().toISOString().split('T')[0]);
+        // Adjust the current date to be the minimum of the actual current date and the sprint end date
+        const adjustedCurrentDate = new Date(Math.min(currentDate, sprintEndDate));
+        // Calculate whole sprint duration in days
+        // Extracting only the date part
+        // const sprintStartDateStr = sprintStartDate.toISOString().substring(0, 10);
+        // const sprintEndDateStr = sprintEndDate.toISOString().substring(0, 10);
+        // const currentDateStr = adjustedCurrentDate.toISOString().substring(0, 10);
+        const sprintDuration = Math.ceil((new Date(sprintEndDate) - new Date(sprintStartDate)) / (1000 * 60 * 60 * 24));
+        const daysSpent = Math.ceil((Math.min(new Date(currentDate), new Date(sprintEndDate)) - new Date(sprintStartDate)) / (1000 * 60 * 60 * 24));
+
+        const story = {
+          story_id: story_id,
+          story_key: issue?.key,
+          story_name: issue?.fields?.summary,
+          story_type: issue?.fields?.issuetype?.name,
+          story_status: issue?.fields?.status?.statusCategory?.name,
+          projectData: {
+            project_id: issue?.fields?.project?.id,
+            project_name: issue?.fields?.project?.name,
+            project_key: issue?.fields?.project?.key,
+            project_lead: dataForProjectLead?.lead.displayName ? dataForProjectLead.lead.displayName : "",
+          },
+          board_id: board_id,
+          board_name: board_name,
+          status_name: issue?.fields?.status?.name,
+          sprint_id: currentSprint?.id,
+          sprint_state: currentSprint?.state,
+          sprint_name: currentSprint?.name,
+          sprint_start: getDate(currentSprint?.startDate),
+          sprint_end: getDate(currentSprint?.endDate),
+          story_ac_hygiene: issue?.fields?.customfield_10156 !== null ? "YES" : "NO",
+          original_estimate: getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
+          remaining_estimate: getDate(issue?.fields?.timetracking?.remainingEstimate) || "Not added",
+          time_spent: issue?.fields?.timetracking?.timeSpent || "Not added",
+          story_reviewers: issue?.fields?.customfield_10003
+            ? issue.fields.customfield_10003.length !== 0
+              ? issue.fields.customfield_10003.map((r) => r.displayName).join(", ")
+              : "Reviewers not added"
+            : "Reviewers not added",
+          story_points: issue?.fields?.customfield_10020 == null ? 0 : issue.fields.customfield_10020,
+          updated: getDate(issue?.fields?.updated),
+          creator: issue?.fields?.creator?.displayName,
+          assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
+          email: issue?.fields?.assignee?.emailAddress,
+          duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue.fields.customfield_10018.length - 1]?.endDate : issue.fields.duedate),
+          sprintDuration: sprintDuration,
+          daysSpent: daysSpent,
+          number_of_sub_tasks: issue?.fields?.subtasks?.length,
+          completed_sub_tasks: issue?.fields?.subtasks?.filter(subtask => subtask?.fields?.status?.name === "Done")?.length,
+          subtasks: issue?.fields?.subtasks?.map(subtask => {
+            return {
+              id: subtask?.id,
+              subtask_key: subtask?.key,
+              status: subtask?.fields?.status?.name,
+              subtaskName: subtask?.fields?.summary,
+              subtaskHistory: []
+            };
+          }),
+          storyHistory: issue?.changelog?.histories?.map(history => {
+            const lastChange = history?.items?.[history.items.length - 1];
+            return {
+              id: history?.id,
+              author: history?.author?.displayName,
+              email: history?.author?.emailAddress,
+              timeLog: getDate(history?.created),
+              changeType: lastChange?.field,
+              changedFrom: lastChange?.fromString,
+              changedTo: lastChange?.toString,
+            };
+          }),
+          // commits: IssueCommits
+        };
+        story_subtask_map[story_id] = story;
+        issues.push(story);
+      }
+      else if (issue.fields.issuetype.name === "Sub-task" && issue.fields.parent) {
+        const parent_id = issue.fields.parent.id;
+        const parent_story = issues.filter(findIssue => findIssue.id === parent_id)
+        issues.forEach(issueItem => {
+          const subtask = issueItem.subtasks.find(subtask => subtask.id === issue.id);
+          if (subtask) {
+            subtask.subtaskHistory = issue.changelog.histories.map(history => {
+              const lastChange = history.items[history.items.length - 1];
+              return {
+                id: history.id,
+                author: history.author.displayName,
+                email: history.author.emailAddress,
+                timeLog: getDate(history.created),
+                changeType: lastChange.field,
+                changedFrom: lastChange.fromString,
+                changedTo: lastChange.toString,
+              };
+            });
+          }
+        });
+        // story_subtask_map[parent_id];
+        // if (parent_story) {
+        //   parent_story.subtasks.filter(subtask => subtask.id === issue.id).subtaskHistory?.push(
+        //     issue.changelog.histories.map(history => {
+        //       const lastChange = history.items[history.items.length - 1];
+        //       return {
+        //         id: history.id,
+        //         author: history.author.displayName,
+        //         email: history.author.emailAddress,
+        //         changedWhen: getDate(history.created),
+        //         changeType: lastChange.field,
+        //         changedFrom: lastChange.fromString,
+        //         changedTo: lastChange.toString,
+        //       };
+        //     })
+        //   )
+        //   // console.log(findSubtask)
+        //   // if (issue.fields.customfield_10020) {
+        //   //   parent_story.story_points += issue.fields.customfield_10020;
+        //   // }
+        //   // if (issue.fields.status.name === "Done") {
+        //   //   parent_story.completed_sub_tasks++;
+        //   // }
+        // }
+      }
+    }
+    res.json({ response });
+  } catch (error) {
+    console.error("Error fetching issues for user:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
@@ -1937,9 +2090,9 @@ app.post('/registration', async (req, res) => {
 })
 
 app.post('/saveComment', async (req, res) => {
-  const { author, email, commentMessage, commentLevel, boardId, sprintId } = req.body
+  const { author, email, commentMessage, commentLevel, boardId, sprintId, boardName, sprintName } = req.body
   try {
-    const comment = await Comments.create({ author: author, email: email, commentMessage: commentMessage, commentLevel: commentLevel, boardId: boardId, sprintId: sprintId })
+    const comment = await Comments.create({ author: author, email: email, commentMessage: commentMessage, commentLevel: commentLevel, boardId: boardId, sprintId: sprintId, boardName: boardName, sprintName: sprintName })
     const saveComment = await comment.save()
     res.status(201).json({
       message: "Comment added ",
