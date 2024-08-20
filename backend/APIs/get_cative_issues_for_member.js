@@ -10,14 +10,14 @@ const auth = {
     password: password,
 };
 
-// Function to get issues for a specific user by email in open sprints
-async function get_issues_for_selected_member(email) {
+// Function to get issues for a specific user by email in active sprints
+async function get_active_issues_for_member(accountId) {
     try {
         const baseUrl = `https://${domain}.atlassian.net`;
-        const jqlQuery = `assignee = "${email}"`;
+        const jqlQuery = `assignee = "${accountId}"`;
         let startAt = 0;
-        let maxResults = 100; // Max results per page (up to 1000)
-        let allIssues = [];
+        let maxResults = 100;
+        let allSprints = new Set();
 
         while (true) {
             const config = {
@@ -30,23 +30,26 @@ async function get_issues_for_selected_member(email) {
             const response = await axios.request(config);
             const issues = response.data.issues;
 
-            allIssues = allIssues.concat(issues);
+            issues.forEach(issue => {
+                const sprints = issue.fields.sprint || issue.fields.customfield_10020; // Replace with your sprint field key if different
+                if (sprints) {
+                    sprints.forEach(sprint => allSprints.add(sprint));
+                }
+            });
 
-            // Break the loop if we have fetched all issues
             if (issues.length < maxResults) {
                 break;
             }
 
-            // Increment startAt for the next pagination
             startAt += maxResults;
         }
 
-        return allIssues;
+        return Array.from(allSprints);
     } catch (error) {
-        console.log("Error fetching issues: ");
+        console.log("Error fetching sprints: ");
         console.log(error?.response?.data?.errors);
         throw error;
     }
 }
 
-module.exports = get_issues_for_selected_member;
+module.exports = get_active_issues_for_member;
