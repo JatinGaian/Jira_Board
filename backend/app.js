@@ -37,6 +37,11 @@ const User = require("./Models/UserSchema");
 const Comments = require("./Models/CommentsSchema");
 const get_issues_for_selected_member = require("./APIs/get_issues_for_selected_member");
 const get_backlogs = require("./APIs/get_backlogs");
+const getProjectIssues = require("./APIs/getProjectIssues");
+const get_active_issues_for_member = require("./APIs/get_cative_issues_for_member");
+const { calculateRemainingDays } = require("./Utils/calculateRemainingDays");
+const { storyConvertor } = require("./Utils/storyConvertor");
+
 const PORT = 8080;
 const getDate = (date) => moment(date).format("MMM Do YYYY, h:mm:ss A");
 // const PORT = 4000;
@@ -78,7 +83,7 @@ app.get("/allBoards", async (req, res) => {
       : [];
 
     response.push({
-      board_id: "398",
+      board_id: 398,
       board_name: "TI",
       board_type: "scrum",
       project_key: null,
@@ -316,6 +321,7 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
         duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue.fields.customfield_10018.length - 1]?.endDate : issue.fields.duedate),
         sprintDuration: sprintDuration,
         daysSpent: daysSpent,
+        daysLeft: calculateRemainingDays(currentSprint?.endDate),
         number_of_sub_tasks: issue?.fields?.subtasks?.length,
         completed_sub_tasks: issue?.fields?.subtasks?.filter(subtask => subtask?.fields?.status?.name === "Done")?.length,
         subtasks: issue?.fields?.subtasks?.map(subtask => {
@@ -456,7 +462,10 @@ app.get("/:boardId/:boardName/backlog", async (req, res) => {
       }
     }
 
-    res.json({ backlogsIssues });
+    res.json({
+      backlogsIssues,
+      length: backlogsIssues.length
+    });
   } catch (error) {
     console.error("Error fetching backlog issues for board:", error);
     res.status(500).json({ error: error });
@@ -780,149 +789,176 @@ app.get("/sprint/:sprintId/members", async (req, res) => {
   }
 });
 
-// issues for selected members
-app.get("/issuesForUser", async (req, res) => {
+//* project history and project issues for selected members
+app.get("/projectHistory/:memberEmail", async (req, res) => {
   try {
-    const { username } = req.query; // User's Jira username from query parameter
-    if (!username) {
-      return res.status(400).json({ error: "Username is required" });
+    const { memberEmail } = req.params; // User's Jira memberEmail from query parameter
+    if (!memberEmail) {
+      return res.status(400).json({ error: "MemberEmail is required" });
     }
-    const response = await get_issues_for_selected_member(username);
-    // for (let issue of response?.issues || []) {
-    //   if (issue.fields.issuetype.name === "Story") {
-    //     const story_id = issue.id;
-    //     //for calculating the sprint duration and days spent
-    //     const sprintStartDate = new Date(issue.fields.customfield_10018[0]?.startDate.split('T')[0])
-    //     const sprintEndDate = new Date(issue.fields.customfield_10018[0]?.endDate.split('T')[0]);
-    //     // Get the actual current date
-    //     const currentDate = new Date(new Date().toISOString().split('T')[0]);
-    //     // Adjust the current date to be the minimum of the actual current date and the sprint end date
-    //     const adjustedCurrentDate = new Date(Math.min(currentDate, sprintEndDate));
-    //     // Calculate whole sprint duration in days
-    //     // Extracting only the date part
-    //     // const sprintStartDateStr = sprintStartDate.toISOString().substring(0, 10);
-    //     // const sprintEndDateStr = sprintEndDate.toISOString().substring(0, 10);
-    //     // const currentDateStr = adjustedCurrentDate.toISOString().substring(0, 10);
-    //     const sprintDuration = Math.ceil((new Date(sprintEndDate) - new Date(sprintStartDate)) / (1000 * 60 * 60 * 24));
-    //     const daysSpent = Math.ceil((Math.min(new Date(currentDate), new Date(sprintEndDate)) - new Date(sprintStartDate)) / (1000 * 60 * 60 * 24));
+    const response = await get_issues_for_selected_member(memberEmail);
 
-    //     const story = {
-    //       story_id: story_id,
-    //       story_key: issue?.key,
-    //       story_name: issue?.fields?.summary,
-    //       story_type: issue?.fields?.issuetype?.name,
-    //       story_status: issue?.fields?.status?.statusCategory?.name,
-    //       projectData: {
-    //         project_id: issue?.fields?.project?.id,
-    //         project_name: issue?.fields?.project?.name,
-    //         project_key: issue?.fields?.project?.key,
-    //         project_lead: dataForProjectLead?.lead.displayName ? dataForProjectLead.lead.displayName : "",
-    //       },
-    //       board_id: board_id,
-    //       board_name: board_name,
-    //       status_name: issue?.fields?.status?.name,
-    //       sprint_id: currentSprint?.id,
-    //       sprint_state: currentSprint?.state,
-    //       sprint_name: currentSprint?.name,
-    //       sprint_start: getDate(currentSprint?.startDate),
-    //       sprint_end: getDate(currentSprint?.endDate),
-    //       story_ac_hygiene: issue?.fields?.customfield_10156 !== null ? "YES" : "NO",
-    //       original_estimate: getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
-    //       remaining_estimate: getDate(issue?.fields?.timetracking?.remainingEstimate) || "Not added",
-    //       time_spent: issue?.fields?.timetracking?.timeSpent || "Not added",
-    //       story_reviewers: issue?.fields?.customfield_10003
-    //         ? issue.fields.customfield_10003.length !== 0
-    //           ? issue.fields.customfield_10003.map((r) => r.displayName).join(", ")
-    //           : "Reviewers not added"
-    //         : "Reviewers not added",
-    //       story_points: issue?.fields?.customfield_10020 == null ? 0 : issue.fields.customfield_10020,
-    //       updated: getDate(issue?.fields?.updated),
-    //       creator: issue?.fields?.creator?.displayName,
-    //       assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
-    //       email: issue?.fields?.assignee?.emailAddress,
-    //       duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue.fields.customfield_10018.length - 1]?.endDate : issue.fields.duedate),
-    //       sprintDuration: sprintDuration,
-    //       daysSpent: daysSpent,
-    //       number_of_sub_tasks: issue?.fields?.subtasks?.length,
-    //       completed_sub_tasks: issue?.fields?.subtasks?.filter(subtask => subtask?.fields?.status?.name === "Done")?.length,
-    //       subtasks: issue?.fields?.subtasks?.map(subtask => {
-    //         return {
-    //           id: subtask?.id,
-    //           subtask_key: subtask?.key,
-    //           status: subtask?.fields?.status?.name,
-    //           subtaskName: subtask?.fields?.summary,
-    //           subtaskHistory: []
-    //         };
-    //       }),
-    //       storyHistory: issue?.changelog?.histories?.map(history => {
-    //         const lastChange = history?.items?.[history.items.length - 1];
-    //         return {
-    //           id: history?.id,
-    //           author: history?.author?.displayName,
-    //           email: history?.author?.emailAddress,
-    //           timeLog: getDate(history?.created),
-    //           changeType: lastChange?.field,
-    //           changedFrom: lastChange?.fromString,
-    //           changedTo: lastChange?.toString,
-    //         };
-    //       }),
-    //       // commits: IssueCommits
-    //     };
-    //     story_subtask_map[story_id] = story;
-    //     issues.push(story);
-    //   }
-    //   else if (issue.fields.issuetype.name === "Sub-task" && issue.fields.parent) {
-    //     const parent_id = issue.fields.parent.id;
-    //     const parent_story = issues.filter(findIssue => findIssue.id === parent_id)
-    //     issues.forEach(issueItem => {
-    //       const subtask = issueItem.subtasks.find(subtask => subtask.id === issue.id);
-    //       if (subtask) {
-    //         subtask.subtaskHistory = issue.changelog.histories.map(history => {
-    //           const lastChange = history.items[history.items.length - 1];
-    //           return {
-    //             id: history.id,
-    //             author: history.author.displayName,
-    //             email: history.author.emailAddress,
-    //             timeLog: getDate(history.created),
-    //             changeType: lastChange.field,
-    //             changedFrom: lastChange.fromString,
-    //             changedTo: lastChange.toString,
-    //           };
-    //         });
-    //       }
-    //     });
-    //     // story_subtask_map[parent_id];
-    //     // if (parent_story) {
-    //     //   parent_story.subtasks.filter(subtask => subtask.id === issue.id).subtaskHistory?.push(
-    //     //     issue.changelog.histories.map(history => {
-    //     //       const lastChange = history.items[history.items.length - 1];
-    //     //       return {
-    //     //         id: history.id,
-    //     //         author: history.author.displayName,
-    //     //         email: history.author.emailAddress,
-    //     //         changedWhen: getDate(history.created),
-    //     //         changeType: lastChange.field,
-    //     //         changedFrom: lastChange.fromString,
-    //     //         changedTo: lastChange.toString,
-    //     //       };
-    //     //     })
-    //     //   )
-    //     //   // console.log(findSubtask)
-    //     //   // if (issue.fields.customfield_10020) {
-    //     //   //   parent_story.story_points += issue.fields.customfield_10020;
-    //     //   // }
-    //     //   // if (issue.fields.status.name === "Done") {
-    //     //   //   parent_story.completed_sub_tasks++;
-    //     //   // }
-    //     // }
-    //   }
-    // }
+    //# here projects basically means board, as every project will have one board
+    const uniqueProjects = response?.reduce((acc, issue) => {
+      const project = {
+        projectKey: issue?.fields?.project?.key,
+        projectId: issue?.fields?.project?.id,
+        projectName: issue?.fields?.project?.name,
+        projectImage: issue?.fields?.project?.avatarUrls["32x32"],
+        projectContribution: issue?.fields?.customfield_10020 == null ? 0 : issue.fields.customfield_10020,
+        projectTotalWork: null,
+        projectLead: null
+      };
+      // Find the project in the accumulator
+      const existingProject = acc.find(proj => proj.projectId === project.projectId);
+      if (existingProject) {
+        // If the project exists, add the story points
+        existingProject.projectContribution += project.projectContribution;
+      } else {
+        acc.push(project);
+        // const totalIssues = await getProjectIssues(project.projectId);
+        // totalIssuesForBoard.push(totalIssues)
+        // If it doesn't exist, add the project to the accumulator
+      }
+      return acc;
+    }, []);
+
+    //*for getting the totalWorkOfProject
+    for (let i = 0; i < uniqueProjects.length; i++) {
+      const project = uniqueProjects[i];
+      const totalIssues = await getProjectIssues(project.projectId);
+      const projectData = await get_project_data(project.projectId);
+      const projectTotalWork = totalIssues.reduce((total, issue) => {
+        const storyPoints = issue?.storyPoints;
+        return total + storyPoints;
+      }, 0);
+
+      project.projectTotalWork = projectTotalWork;
+      project.projectLead = projectData?.lead.displayName ? projectData.lead.displayName : ""
+    }
+
+    res.json({
+      // response,
+      projectsWorkedOn: uniqueProjects
+    });
+  } catch (error) {
+    console.error("Error fetching issues for user:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+//# sprint history and sprint issues for a selected member
+app.get("/sprintsHistory/:email", async (req, res) => {
+  try {
+    const { email } = req.params; // User's Jira username from query parameter
+
+    const response = await get_issues_for_selected_member(email);
+    const issues = response; // Assuming response is an array of issues
+
+    // Get the current month and year
+    const currentMonth = new Date().getMonth(); // 0-based index
+    const currentYear = new Date().getFullYear();
+
+    // Extract unique sprints that started in the current month
+    const uniqueSprints = issues.reduce((acc, issue) => {
+      // Access the sprints field; make sure it's an array
+      const sprints = issue.fields.customfield_10018 || [];
+      const story = storyConvertor(issue , sprints)
+
+      sprints.forEach(sprint => {
+        const sprintStartDate = new Date(sprint.startDate);
+
+        // Check if the sprint started in the current month and year
+        if (sprintStartDate.getMonth() === currentMonth && sprintStartDate.getFullYear() === currentYear) {
+          const addSprint = {
+            sprintId: sprint.id,
+            sprintName: sprint.name,
+            sprintStartDate: moment(sprint.startDate).format("D MMM YYYY, h:mm:ss A"),
+            sprintEndDate: moment(sprint.endDate).format("D MMM YYYY, h:mm:ss A"),
+            daysLeft: calculateRemainingDays(sprint.endDate),
+            sprintState: sprint.state,
+            contributionMade: null,
+            sprintTotalWork: null,
+            projectData: {
+              projectId: issue?.fields?.project?.id,
+              projectName: issue?.fields?.project?.name,
+              projectKey: issue?.fields?.project?.key,
+              projectImage: issue?.fields?.project?.avatarUrls["32x32"],
+            },
+            stories:[story]
+          };
+
+          // Find if the sprint already exists in the accumulator
+          const existingSprint = acc.find(s => s.sprintId === addSprint.sprintId);
+          if (!existingSprint) {
+            acc.push(addSprint);
+          }
+          else {
+            existingSprint.stories.push(story)
+          }
+        }
+      });
+
+      return acc;
+    }, []);
+
+    for (const sprint of uniqueSprints) {
+      try {
+        const response = await getSprintIssues(sprint.sprintId);
+        const issues = response.issues;
+
+        const contributionMade = issues
+          .filter((emailFilter) => emailFilter?.fields?.assignee?.emailAddress == email)
+          .filter((statusFilter) => statusFilter.fields?.status?.name == "Done")
+          .reduce((total, issue) => {
+            const storyPoints = issue?.fields?.customfield_10020 == null ? 0 : issue?.fields?.customfield_10020;
+            return total + storyPoints;
+          }, 0);
+
+        const sprintTotalWork = issues.reduce((total, issue) => {
+          const storyPoints = issue?.fields?.customfield_10020 == null ? 0 : issue?.fields?.customfield_10020;
+          return total + storyPoints;
+        }, 0);
+
+        sprint.sprintTotalWork = sprintTotalWork;
+        sprint.contributionMade = contributionMade;
+
+      } catch (error) {
+        console.error(`Error processing sprint ${sprint.sprintId}:`, error);
+        // Handle or log the error as needed
+      }
+    }
+    // Sort to get the latest sprint first
+    uniqueSprints.sort((a, b) => new Date(b.sprintEndDate) - new Date(a.sprintEndDate));
+
+
+    res.json({
+      sprintsWorkedOn: uniqueSprints
+    });
+  } catch (error) {
+    console.error("Error fetching issues for user:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// for getting all the issues for project (gives storyPoints and some imp data only)
+app.get("/issuesForProject/:projectId", async (req, res) => {
+  try {
+    const { projectId } = req.params; // User's Jira username from query parameter
+
+    const response = await getProjectIssues(projectId);
+
     res.json({ response });
   } catch (error) {
     console.error("Error fetching issues for user:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+
+
+
 
 
 // APIs for PI
@@ -1540,7 +1576,7 @@ app.get("/:boardId/project", async (req, res) => {
       project_lead: response?.lead.displayName ? response.lead.displayName : "",
     };
 
-    res.json({ project });
+    res.json({ project, response });
     debugger;
     // conole.log({ project });
   } catch (error) {
