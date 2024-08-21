@@ -41,6 +41,7 @@ const getProjectIssues = require("./APIs/getProjectIssues");
 const get_active_issues_for_member = require("./APIs/get_cative_issues_for_member");
 const { calculateRemainingDays } = require("./Utils/calculateRemainingDays");
 const { storyConvertor } = require("./Utils/storyConvertor");
+const get_board_details_by_sprintId = require("./APIs/get_board_details_by_sprintId");
 
 const PORT = 8080;
 const getDate = (date) => moment(date).format("MMM Do YYYY, h:mm:ss A");
@@ -212,7 +213,7 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   const sprint_id = req.params.sprintId;
   const board_id = req.params.boardId;
   const board_name = req.params.boardName;
-
+ 
   const sprintList = await getSprints(board_id);
   const currentSprint = sprintList?.values?.find(sprint => sprint?.id == sprint_id)
 
@@ -294,6 +295,7 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
           project_id: issue?.fields?.project?.id,
           project_name: issue?.fields?.project?.name,
           project_key: issue?.fields?.project?.key,
+          projectImage: issue?.fields?.project?.avatarUrls["32x32"],
           project_lead: dataForProjectLead?.lead.displayName ? dataForProjectLead.lead.displayName : "",
         },
         board_id: board_id,
@@ -398,9 +400,10 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   }
 
   res.json({
+    response,
     issues,
     members,
-    currentSprint: currentSprint
+    currentSprint: currentSprint,
   });
 });
 
@@ -855,7 +858,6 @@ app.get("/sprintsHistory/:email", async (req, res) => {
 
     const response = await get_issues_for_selected_member(email);
     const issues = response; // Assuming response is an array of issues
-
     // Get the current month and year
     const currentMonth = new Date().getMonth(); // 0-based index
     const currentYear = new Date().getFullYear();
@@ -866,12 +868,13 @@ app.get("/sprintsHistory/:email", async (req, res) => {
       const sprints = issue.fields.customfield_10018 || [];
       const story = storyConvertor(issue , sprints)
 
-      sprints.forEach(sprint => {
+      sprints.forEach((sprint) => {
         const sprintStartDate = new Date(sprint.startDate);
 
         // Check if the sprint started in the current month and year
         if (sprintStartDate.getMonth() === currentMonth && sprintStartDate.getFullYear() === currentYear) {
           const addSprint = {
+            boardId: null,
             sprintId: sprint.id,
             sprintName: sprint.name,
             sprintStartDate: moment(sprint.startDate).format("D MMM YYYY, h:mm:ss A"),
@@ -906,6 +909,7 @@ app.get("/sprintsHistory/:email", async (req, res) => {
     for (const sprint of uniqueSprints) {
       try {
         const response = await getSprintIssues(sprint.sprintId);
+        const boardId = await get_board_details_by_sprintId(sprint.sprintId)
         const issues = response.issues;
 
         const contributionMade = issues
@@ -923,6 +927,7 @@ app.get("/sprintsHistory/:email", async (req, res) => {
 
         sprint.sprintTotalWork = sprintTotalWork;
         sprint.contributionMade = contributionMade;
+        sprint.boardId = boardId;
 
       } catch (error) {
         console.error(`Error processing sprint ${sprint.sprintId}:`, error);

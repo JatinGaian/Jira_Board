@@ -16,6 +16,7 @@ const storyConvertor = (issue, sprints) => {
             project_id: issue?.fields?.project?.id,
             project_name: issue?.fields?.project?.name,
             project_key: issue?.fields?.project?.key,
+            projectImage: issue?.fields?.project?.avatarUrls["32x32"],
         },
         // board_id: board_id,
         // board_name: board_name,
