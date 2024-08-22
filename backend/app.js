@@ -232,7 +232,30 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   const dataForProjectLead = await get_project_data(project_key);
 
   for (let issue of response?.issues || []) {
-    if (issue.fields.issuetype.name === "Story") {
+    if (issue?.fields?.issuetype?.name !== "Sub-task") {
+
+      // Filtering issuelinks for 'blocked by' and 'blocks'
+      const blockedBy = issue?.fields?.issuelinks
+        ?.filter(link => link?.type?.inward === "is blocked by")
+        ?.map(link => ({
+          id: link?.inwardIssue?.id,
+          key: link?.inwardIssue?.key,
+          summary: link?.inwardIssue?.fields?.summary,
+          status: link?.inwardIssue?.fields?.status?.name,
+          priority: link?.inwardIssue?.fields?.priority?.name,
+          type: link?.inwardIssue?.fields?.issuetype?.name
+        })) || [];
+
+      const blocks = issue?.fields?.issuelinks
+        ?.filter(link => link?.type?.outward === "blocks")
+        ?.map(link => ({
+          id: link?.outwardIssue?.id,
+          key: link?.outwardIssue?.key,
+          summary: link?.outwardIssue?.fields?.summary,
+          status: link?.outwardIssue?.fields?.status?.name,
+          priority: link?.outwardIssue?.fields?.priority?.name,
+          type: link?.outwardIssue?.fields?.issuetype?.name
+        })) || [];
       //for fetching members
       if (issue.fields.assignee) {
         let accountId = issue.fields.assignee.accountId.toString();
@@ -290,7 +313,10 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
         story_key: issue?.key,
         story_name: issue?.fields?.summary,
         story_type: issue?.fields?.issuetype?.name,
+        issueIcon: issue?.fields?.issuetype?.iconUrl,
         story_status: issue?.fields?.status?.statusCategory?.name,
+        blockedBy: blockedBy,
+        blocks: blocks,
         projectData: {
           project_id: issue?.fields?.project?.id,
           project_name: issue?.fields?.project?.name,
@@ -866,42 +892,44 @@ app.get("/sprintsHistory/:email", async (req, res) => {
     const uniqueSprints = issues.reduce((acc, issue) => {
       // Access the sprints field; make sure it's an array
       const sprints = issue.fields.customfield_10018 || [];
-      const story = storyConvertor(issue , sprints)
+      const story = storyConvertor(issue, sprints)
+      const addSprint = {
+        boardId: null,
+        sprintId: sprints?.[0]?.id,
+        sprintName: sprints?.[0]?.name,
+        sprintStartDate: moment(sprints?.[0]?.startDate).format("D MMM YYYY, h:mm:ss A"),
+        sprintEndDate: moment(sprints?.[0]?.endDate).format("D MMM YYYY, h:mm:ss A"),
+        daysLeft: calculateRemainingDays(sprints?.[0]?.endDate),
+        sprintState: sprints?.[0]?.state,
+        contributionMade: null,
+        sprintTotalWork: null,
+        projectData: {
+          projectId: issue?.fields?.project?.id,
+          projectName: issue?.fields?.project?.name,
+          projectKey: issue?.fields?.project?.key,
+          projectImage: issue?.fields?.project?.avatarUrls["32x32"],
+        },
+        stories: [story]
+      };
 
-      sprints.forEach((sprint) => {
-        const sprintStartDate = new Date(sprint.startDate);
+      // Find if the sprint already exists in the accumulator
+      const existingSprint = acc.find(s => s.sprintId === addSprint.sprintId);
 
-        // Check if the sprint started in the current month and year
-        if (sprintStartDate.getMonth() === currentMonth && sprintStartDate.getFullYear() === currentYear) {
-          const addSprint = {
-            boardId: null,
-            sprintId: sprint.id,
-            sprintName: sprint.name,
-            sprintStartDate: moment(sprint.startDate).format("D MMM YYYY, h:mm:ss A"),
-            sprintEndDate: moment(sprint.endDate).format("D MMM YYYY, h:mm:ss A"),
-            daysLeft: calculateRemainingDays(sprint.endDate),
-            sprintState: sprint.state,
-            contributionMade: null,
-            sprintTotalWork: null,
-            projectData: {
-              projectId: issue?.fields?.project?.id,
-              projectName: issue?.fields?.project?.name,
-              projectKey: issue?.fields?.project?.key,
-              projectImage: issue?.fields?.project?.avatarUrls["32x32"],
-            },
-            stories:[story]
-          };
+      if (!existingSprint) {
+        acc.push(addSprint);
+      }
+      else {
+        existingSprint.stories.push(story)
+      }
 
-          // Find if the sprint already exists in the accumulator
-          const existingSprint = acc.find(s => s.sprintId === addSprint.sprintId);
-          if (!existingSprint) {
-            acc.push(addSprint);
-          }
-          else {
-            existingSprint.stories.push(story)
-          }
-        }
-      });
+      // sprints.forEach((sprint) => {
+      //   const sprintStartDate = new Date(sprint.startDate);
+       
+      //   // Check if the sprint started in the current month and year
+      //   // if (sprintStartDate.getMonth() === currentMonth && sprintStartDate.getFullYear() === currentYear) {
+        
+      //   // }
+      // });
 
       return acc;
     }, []);

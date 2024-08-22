@@ -5,12 +5,38 @@ const { calculateRemainingDays } = require("./calculateRemainingDays");
 
 const storyConvertor = (issue, sprints) => {
     const getDate = (date) => moment(date).format("MMM Do YYYY, h:mm:ss A");
+    if (issue.fields.issuetype.name === "Story") {
+        
+    }
+    // Filtering issuelinks for 'blocked by' and 'blocks'
+    const blockedBy = issue?.fields?.issuelinks
+        ?.filter(link => link.type.inward === "is blocked by")
+        ?.map(link => ({
+            id: link.inwardIssue.id,
+            key: link.inwardIssue.key,
+            summary: link.inwardIssue.fields.summary,
+            status: link.inwardIssue.fields.status.name,
+            priority: link.inwardIssue.fields.priority.name,
+            type: link.inwardIssue.fields.issuetype.name
+        })) || [];
+
+    const blocks = issue?.fields?.issuelinks
+        ?.filter(link => link.type.outward === "blocks")
+        ?.map(link => ({
+            id: link.outwardIssue.id,
+            key: link.outwardIssue.key,
+            summary: link.outwardIssue.fields.summary,
+            status: link.outwardIssue.fields.status.name,
+            priority: link.outwardIssue.fields.priority.name,
+            type: link.outwardIssue.fields.issuetype.name
+        })) || [];
 
     const story = {
         story_id: issue.id,
         story_key: issue?.key,
         story_name: issue?.fields?.summary,
         story_type: issue?.fields?.issuetype?.name,
+        issueIcon: issue?.fields?.issuetype?.iconUrl,
         story_status: issue?.fields?.status?.statusCategory?.name,
         projectData: {
             project_id: issue?.fields?.project?.id,
@@ -18,8 +44,8 @@ const storyConvertor = (issue, sprints) => {
             project_key: issue?.fields?.project?.key,
             projectImage: issue?.fields?.project?.avatarUrls["32x32"],
         },
-        // board_id: board_id,
-        // board_name: board_name,
+        blockedBy: blockedBy,
+        blocks: blocks,
         status_name: issue?.fields?.status?.name,
         sprint_id: issue.fields.customfield_10018?.[0]?.id,
         sprint_state: issue.fields.customfield_10018?.[0]?.state,
