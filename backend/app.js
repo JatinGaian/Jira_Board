@@ -42,6 +42,8 @@ const get_active_issues_for_member = require("./APIs/get_cative_issues_for_membe
 const { calculateRemainingDays } = require("./Utils/calculateRemainingDays");
 const { storyConvertor } = require("./Utils/storyConvertor");
 const get_board_details_by_sprintId = require("./APIs/get_board_details_by_sprintId");
+const get_boards_with_active_prints = require("./APIs/getProjectSuccess");
+const getProjectSuccess = require("./APIs/getProjectSuccess");
 
 const PORT = 8080;
 const getDate = (date) => moment(date).format("MMM Do YYYY, h:mm:ss A");
@@ -93,6 +95,19 @@ app.get("/allBoards", async (req, res) => {
     })
     // console.log(response, activeBoards);
     res.json({ response });
+  } catch (error) {
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+//# get all boards with active sprints
+app.get("/projectSuccess/:projectId", async (req, res) => {
+  const {projectId} = req.params
+  try {
+    const response = await getProjectSuccess(projectId);
+   
+    res.json({ projectSuccess: response });
   } catch (error) {
     console.error("Error fetching boards:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -213,7 +228,7 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   const sprint_id = req.params.sprintId;
   const board_id = req.params.boardId;
   const board_name = req.params.boardName;
- 
+
   const sprintList = await getSprints(board_id);
   const currentSprint = sprintList?.values?.find(sprint => sprint?.id == sprint_id)
 
@@ -448,7 +463,7 @@ app.get("/:boardId/:boardName/backlog", async (req, res) => {
     // fetching the project data including project lead
 
     for (let issue of response?.issues || []) {
-      if (issue.fields.issuetype.name === "Story") {
+      if (issue?.fields?.issuetype?.name === "Story") {
         //for fetching members
 
         const story_id = issue.id;
@@ -492,8 +507,9 @@ app.get("/:boardId/:boardName/backlog", async (req, res) => {
     }
 
     res.json({
+      totalLength: response?.issues?.filter((backlog) => (backlog?.fields?.issuetype?.name === "Story"))?.length,
       backlogsIssues,
-      length: backlogsIssues.length
+      // length: backlogsIssues.length
     });
   } catch (error) {
     console.error("Error fetching backlog issues for board:", error);
@@ -924,10 +940,10 @@ app.get("/sprintsHistory/:email", async (req, res) => {
 
       // sprints.forEach((sprint) => {
       //   const sprintStartDate = new Date(sprint.startDate);
-       
+
       //   // Check if the sprint started in the current month and year
       //   // if (sprintStartDate.getMonth() === currentMonth && sprintStartDate.getFullYear() === currentYear) {
-        
+
       //   // }
       // });
 
@@ -1683,7 +1699,6 @@ app.post("/allboards/activesprints", async (req, res) => {
   try {
     const data = req.body;
     const all_boards = data;
-
     const activeSprints = [];
     const processedBoardIds = new Set(); // Maintain a set of processed board IDs
 
@@ -1702,76 +1717,82 @@ app.post("/allboards/activesprints", async (req, res) => {
       const board_name = board.board_name;
       const board_type = board.board_type;
       const sprintsData = await getSprints(board_id);
+
       // const active_sprints = sprintsData?.values? sprintsData.values.filter((sprint) => sprint.state === "active"): [];
 
-      const active_sprints = [
-        sprintsData?.values?.filter((sprint) => sprint.state === "closed").sort(
-          (a, b) => new Date(b.completeDate) - new Date(a.completeDate)
-        )[0],
-        ...(sprintsData?.values?.filter((sprint) => sprint.state === "active") ||
-          []),
-      ].filter(Boolean);
+      const active_sprints = sprintsData?.values ? sprintsData.values.filter((sprint) => sprint.state === "active") : [];
+        // 
+      //   [
+      //   sprintsData?.values?.filter((sprint) => sprint.state === "closed").sort(
+      //     (a, b) => new Date(b.completeDate) - new Date(a.completeDate)
+      //   )[0],
+      //   ...(sprintsData?.values?.filter((sprint) => sprint.state === "active") ||
+      //     []),
+      // ].filter(Boolean);
 
       if (active_sprints.length === 0) {
         return;
       }
       // console.log(activeSprints)
-      for (let j = 0; j < active_sprints.length; j++) {
-        const sprintData = await getSprintIssues(active_sprints[j].id);
-        const stories = sprintData.issues.filter(
-          (issue) => issue.fields.issuetype.name === "Story"
+      for (let j = 0; j < active_sprints?.length; j++) {
+        const sprintData = await getSprintIssues(active_sprints[j]?.id);
+        const stories = sprintData?.issues?.filter(
+          (issue) => issue?.fields?.issuetype?.name === "Story"
         );
 
-        const total_stories = stories.length;
-        const done_stories = stories.filter(
-          (issue) => issue.fields.status?.statusCategory?.name === "Done"
+        const total_stories = stories?.length;
+
+        const done_stories = stories?.filter(
+          (issue) => issue?.fields?.status?.statusCategory?.name === "Done"
         );
-        const in_progress_stories = stories.filter(
-          (issue) => issue.fields.status?.statusCategory?.name === "In Progress"
+        const in_progress_stories = stories?.filter(
+          (issue) => issue?.fields?.status?.statusCategory?.name === "In Progress"
         );
         let totalStoriesPoints = 0
         let totalInProgressPoints = 0
         //for getting the total story points for each sprint
-        for (let i = 0; i < stories.length; i++) {
-          totalStoriesPoints = totalStoriesPoints + (stories[i].fields.customfield_10020 == null ? 0 : stories[i].fields.customfield_10020)
+        for (let i = 0; i < stories?.length; i++) {
+          totalStoriesPoints = totalStoriesPoints + (stories[i]?.fields?.customfield_10020 == null ? 0 : stories[i]?.fields?.customfield_10020)
         }
         //for getting the total story points in progress currently
         in_progress_stories?.forEach(story => {
-          totalInProgressPoints = totalInProgressPoints + (story.fields.customfield_10020 == null ? 0 : story.fields.customfield_10020)
+          totalInProgressPoints = totalInProgressPoints + (story?.fields?.customfield_10020 == null ? 0 : story?.fields?.customfield_10020)
         });
         //for getting the total members working in each sprint
         const uniqueAssignees = {};
-        stories.forEach(ticket => {
-          const assignee = ticket.fields.assignee;
-          if (assignee && !uniqueAssignees[assignee.accountId]) {
-            uniqueAssignees[assignee.accountId] = {
-              name: assignee.displayName,
-              accountId: assignee.accountId,
-              emailAddress: assignee.emailAddress
+        stories?.forEach(ticket => {
+          const assignee = ticket?.fields?.assignee;
+          if (assignee && !uniqueAssignees[assignee?.accountId]) {
+            uniqueAssignees[assignee?.accountId] = {
+              name: assignee?.displayName,
+              accountId: assignee?.accountId,
+              emailAddress: assignee?.emailAddress
             };
           }
         });
         const totalMembers = Object.values(uniqueAssignees);
+        // const boardBacklogs = await get_backlogs(board_id);
 
         activeSprints.push({
           board_id: board_id,
           board_name: board_name,
           board_type: board_type,
-          sprint_id: active_sprints[j].id,
-          sprint_name: active_sprints[j].name,
-          sprint_status: active_sprints[j].state,
-          sprint_start: active_sprints[j].startDate
-            ? active_sprints[j].startDate
+          // backlogs: boardBacklogs?.issues?.filter((backlog) => (backlog.fields.issuetype.name === "Story"))?.length,
+          sprint_id: active_sprints[j]?.id,
+          sprint_name: active_sprints[j]?.name,
+          sprint_status: active_sprints[j]?.state,
+          sprint_start: active_sprints[j]?.startDate
+            ? active_sprints[j]?.startDate
             : "No date added",
-          sprint_end: active_sprints[j].endDate
-            ? active_sprints[j].endDate
+          sprint_end: active_sprints[j]?.endDate
+            ? active_sprints[j]?.endDate
             : "No date added",
           total_stories: total_stories,
-          done_stories: done_stories.length,
-          in_progress_stories: in_progress_stories.length,
+          done_stories: done_stories?.length,
+          in_progress_stories: in_progress_stories?.length,
           total_story_points: totalStoriesPoints,
           total_inProgress_points: totalInProgressPoints,
-          members: totalMembers
+          members: totalMembers,
         });
       }
     };
