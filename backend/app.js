@@ -44,6 +44,7 @@ const { storyConvertor } = require("./Utils/storyConvertor");
 const get_board_details_by_sprintId = require("./APIs/get_board_details_by_sprintId");
 const get_boards_with_active_prints = require("./APIs/getProjectSuccess");
 const getProjectSuccess = require("./APIs/getProjectSuccess");
+const get_project_all_detailed_issues = require("./APIs/get_project_all_detailed_issues");
 
 const PORT = 8080;
 const getDate = (date) => moment(date).format("MMM Do YYYY, h:mm:ss A");
@@ -103,16 +104,72 @@ app.get("/allBoards", async (req, res) => {
 
 //# get all boards with active sprints
 app.get("/projectSuccess/:projectId", async (req, res) => {
-  const {projectId} = req.params
+  const { projectId } = req.params
   try {
     const response = await getProjectSuccess(projectId);
-   
     res.json({ projectSuccess: response });
   } catch (error) {
     console.error("Error fetching boards:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+// detailed info for a project
+app.get('/details/project/:projectId', async (req, res) => {
+  const allIssues = []
+  let projectSuccess = ""
+  const { projectId } = req.params
+  try {
+    const response = await get_project_all_detailed_issues(projectId);
+    const dataForProjectLead = await get_project_data(projectId);
+    if (response.length > 0) {
+      for (const issue of response) {
+        const story = storyConvertor(issue, dataForProjectLead)
+        allIssues.push(story)
+      }
+
+      const totalStories = allIssues?.length;
+      const doneStoriesLength = allIssues?.filter(issue => issue.story_status.toLowerCase() === 'done').length;
+      const totalProjectStoryPoints = allIssues?.reduce((total, story) => total + story?.story_points, 0);
+      const totalDoneStoryPoints = allIssues?.filter(issue => issue?.story_status?.toLowerCase() === 'done')?.reduce((total, story) => total + story?.story_points, 0);
+      // Calculate project success probability
+      const successProbability = totalStories > 0 ? (doneStoriesLength / totalStories) * 100 : 0;
+      const allSprints = allIssues?.map(story => ({
+          sprintName: story?.sprint_name,
+          sprintId: story?.sprint_id,
+          sprintState: story?.sprint_state
+        })) // Extract sprint names and IDs
+        .filter(Boolean); // Remove any undefined or null values
+      const uniqueAllSprints = Array.from(
+        new Map(
+          allSprints.map(sprint => [`${sprint.sprintName}-${sprint.sprintId}`, sprint])
+        ).values()
+      );
+      const projectSuccessData = {
+        projectId: projectId,
+        projectName: allIssues?.[0]?.projectData?.project_name,
+        projectKey: allIssues?.[0]?.projectData?.project_key,
+        projectImage: allIssues?.[0]?.projectData?.projectImage,
+        allSprints: uniqueAllSprints,
+        totalStories: totalStories,
+        totalProjectStoryPoints: totalProjectStoryPoints,
+        doneStories: doneStoriesLength,
+        totalDoneStoryPoints: totalDoneStoryPoints,
+        successProbability: successProbability.toFixed(2) + '%',
+      }
+      projectSuccess = projectSuccessData
+    }
+   
+    res.json({
+      // response: response,
+      projectSuccess: projectSuccess,
+      allIssues: allIssues
+    });
+  } catch (error) {
+    console.error("Error fetching boards:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+})
 
 // for getting all sprints of a specific board
 app.get("/:boardId/allSprints", async (req, res) => {
@@ -356,7 +413,7 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
             ? issue.fields.customfield_10003.map((r) => r.displayName).join(", ")
             : "Reviewers not added"
           : "Reviewers not added",
-        story_points: issue?.fields?.customfield_10020 == null ? 0 : issue.fields.customfield_10020,
+        story_points: issue?.fields?.customfield_10020 ?? issue?.fields?.customfield_10026 ?? 0,
         updated: getDate(issue?.fields?.updated),
         creator: issue?.fields?.creator?.displayName,
         assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
@@ -484,7 +541,7 @@ app.get("/:boardId/:boardName/backlog", async (req, res) => {
           original_estimate: getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
           remaining_estimate: getDate(issue?.fields?.timetracking?.remainingEstimate) || "Not added",
           time_spent: issue?.fields?.timetracking?.timeSpent || "Not added",
-          story_points: issue?.fields?.customfield_10020 == null ? 0 : issue.fields.customfield_10020,
+          story_points: issue?.fields?.customfield_10020 ?? issue?.fields?.customfield_10026 ?? 0,
           updated: getDate(issue?.fields?.updated),
           creator: issue?.fields?.creator?.displayName,
           assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
@@ -908,7 +965,7 @@ app.get("/sprintsHistory/:email", async (req, res) => {
     const uniqueSprints = issues.reduce((acc, issue) => {
       // Access the sprints field; make sure it's an array
       const sprints = issue.fields.customfield_10018 || [];
-      const story = storyConvertor(issue, sprints)
+      const story = storyConvertor(issue)
       const addSprint = {
         boardId: null,
         sprintId: sprints?.[0]?.id,
@@ -987,7 +1044,7 @@ app.get("/sprintsHistory/:email", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching issues for user:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: error});
   }
 });
 
@@ -1048,9 +1105,7 @@ app.get("/:boardID/stories", async (req, res) => {
         return {
           board_id,
           story_points:
-            issue.fields.customfield_10020 == null
-              ? 0
-              : issue.fields.customfield_10020,
+            issue?.fields?.customfield_10020 ?? issue?.fields?.customfield_10026 ?? 0,
           assignee:
             issue.fields.assignee !== null
               ? issue.fields.assignee.displayName
@@ -1721,7 +1776,7 @@ app.post("/allboards/activesprints", async (req, res) => {
       // const active_sprints = sprintsData?.values? sprintsData.values.filter((sprint) => sprint.state === "active"): [];
 
       const active_sprints = sprintsData?.values ? sprintsData.values.filter((sprint) => sprint.state === "active") : [];
-        // 
+      // 
       //   [
       //   sprintsData?.values?.filter((sprint) => sprint.state === "closed").sort(
       //     (a, b) => new Date(b.completeDate) - new Date(a.completeDate)

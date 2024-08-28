@@ -15,7 +15,7 @@ async function getProjectIssues(projectIdOrKey) {
     try {
         const baseUrl = `https://${domain}.atlassian.net`;
         const jqlQuery = `project = "${projectIdOrKey}"`;
-        const fields = "summary,customfield_10020,customfield_10018"; // Fields to retrieve
+        const fields = "summary,customfield_10020,customfield_10026,customfield_10018"; // Fields to retrieve
         let startAt = 0;
         let maxResults = 100;
         let allIssues = [];
@@ -34,7 +34,7 @@ async function getProjectIssues(projectIdOrKey) {
             const issueDetails = issues.map(issue => ({
                 key: issue.key,
                 summary: issue.fields.summary,
-                storyPoints: issue.fields.customfield_10020 || 0,
+                storyPoints: issue?.fields?.customfield_10020 ?? issue?.fields?.customfield_10026 ?? 0,
                 sprintName: issue.fields.customfield_10018 ? issue.fields.customfield_10018[0]?.name : null
             }));
 
