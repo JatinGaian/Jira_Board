@@ -26,7 +26,7 @@ const getEmployeeCourses = require("./LMSandL&D/APIs/get_employee_courses");
 const bycrpt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const { GetRandomBGColor } = require('./Utils/GetRandomBGColor')
+const { GetRandomBGColor } = require("./Utils/GetRandomBGColor");
 
 // const summaryJsonpath = require("./boardsJson/summaryBoards.json")
 const fs = require("fs").promises;
@@ -35,6 +35,7 @@ const app = express();
 const mongoose = require("mongoose");
 const User = require("./Models/UserSchema");
 const Comments = require("./Models/CommentsSchema");
+const Interactions = require("./Models/InteractionSchema");
 const get_issues_for_selected_member = require("./APIs/get_issues_for_selected_member");
 const get_backlogs = require("./APIs/get_backlogs");
 const getProjectIssues = require("./APIs/getProjectIssues");
@@ -74,16 +75,18 @@ app.get("/health", async (req, res) => {
 app.get("/allBoards", async (req, res) => {
   try {
     const data = await get_all_boards();
-    const activeBoards = data.filter(board => !board?.location?.projectName?.startsWith('[Discarded]'));
+    const activeBoards = data.filter(
+      (board) => !board?.location?.projectName?.startsWith("[Discarded]")
+    );
     let response = activeBoards
       ? activeBoards.map((board) => ({
-        board_id: board.id,
-        board_name: board.name,
-        board_type: board.type,
-        project_key: board.location ? board.location.projectKey : null,
-        project_name: board.location ? board.location.projectName : null,
-        projectId: board.location ? board.location.projectId : null,
-      }))
+          board_id: board.id,
+          board_name: board.name,
+          board_type: board.type,
+          project_key: board.location ? board.location.projectKey : null,
+          project_name: board.location ? board.location.projectName : null,
+          projectId: board.location ? board.location.projectId : null,
+        }))
       : [];
 
     response.push({
@@ -93,7 +96,7 @@ app.get("/allBoards", async (req, res) => {
       project_key: null,
       project_name: null,
       projectId: null,
-    })
+    });
     // console.log(response, activeBoards);
     res.json({ response });
   } catch (error) {
@@ -104,7 +107,7 @@ app.get("/allBoards", async (req, res) => {
 
 //# get all boards with active sprints
 app.get("/projectSuccess/:projectId", async (req, res) => {
-  const { projectId } = req.params
+  const { projectId } = req.params;
   try {
     const response = await getProjectSuccess(projectId);
     res.json({ projectSuccess: response });
@@ -115,34 +118,46 @@ app.get("/projectSuccess/:projectId", async (req, res) => {
 });
 
 // detailed info for a project
-app.get('/details/project/:projectId', async (req, res) => {
-  const allIssues = []
-  let projectSuccess = ""
-  const { projectId } = req.params
+app.get("/details/project/:projectId", async (req, res) => {
+  const allIssues = [];
+  let projectSuccess = "";
+  const { projectId } = req.params;
   try {
     const response = await get_project_all_detailed_issues(projectId);
     const dataForProjectLead = await get_project_data(projectId);
     if (response.length > 0) {
       for (const issue of response) {
-        const story = storyConvertor(issue, dataForProjectLead)
-        allIssues.push(story)
+        const story = storyConvertor(issue, dataForProjectLead);
+        allIssues.push(story);
       }
 
       const totalStories = allIssues?.length;
-      const doneStoriesLength = allIssues?.filter(issue => issue.story_status.toLowerCase() === 'done').length;
-      const totalProjectStoryPoints = allIssues?.reduce((total, story) => total + story?.story_points, 0);
-      const totalDoneStoryPoints = allIssues?.filter(issue => issue?.story_status?.toLowerCase() === 'done')?.reduce((total, story) => total + story?.story_points, 0);
+      const doneStoriesLength = allIssues?.filter(
+        (issue) => issue.story_status.toLowerCase() === "done"
+      ).length;
+      const totalProjectStoryPoints = allIssues?.reduce(
+        (total, story) => total + story?.story_points,
+        0
+      );
+      const totalDoneStoryPoints = allIssues
+        ?.filter((issue) => issue?.story_status?.toLowerCase() === "done")
+        ?.reduce((total, story) => total + story?.story_points, 0);
       // Calculate project success probability
-      const successProbability = totalStories > 0 ? (doneStoriesLength / totalStories) * 100 : 0;
-      const allSprints = allIssues?.map(story => ({
+      const successProbability =
+        totalStories > 0 ? (doneStoriesLength / totalStories) * 100 : 0;
+      const allSprints = allIssues
+        ?.map((story) => ({
           sprintName: story?.sprint_name,
           sprintId: story?.sprint_id,
-          sprintState: story?.sprint_state
+          sprintState: story?.sprint_state,
         })) // Extract sprint names and IDs
         .filter(Boolean); // Remove any undefined or null values
       const uniqueAllSprints = Array.from(
         new Map(
-          allSprints.map(sprint => [`${sprint.sprintName}-${sprint.sprintId}`, sprint])
+          allSprints.map((sprint) => [
+            `${sprint.sprintName}-${sprint.sprintId}`,
+            sprint,
+          ])
         ).values()
       );
       const projectSuccessData = {
@@ -155,21 +170,21 @@ app.get('/details/project/:projectId', async (req, res) => {
         totalProjectStoryPoints: totalProjectStoryPoints,
         doneStories: doneStoriesLength,
         totalDoneStoryPoints: totalDoneStoryPoints,
-        successProbability: successProbability.toFixed(2) + '%',
-      }
-      projectSuccess = projectSuccessData
+        successProbability: successProbability.toFixed(2) + "%",
+      };
+      projectSuccess = projectSuccessData;
     }
-   
+
     res.json({
       // response: response,
       projectSuccess: projectSuccess,
-      allIssues: allIssues
+      allIssues: allIssues,
     });
   } catch (error) {
     console.error("Error fetching boards:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
-})
+});
 
 // for getting all sprints of a specific board
 app.get("/:boardId/allSprints", async (req, res) => {
@@ -178,7 +193,7 @@ app.get("/:boardId/allSprints", async (req, res) => {
   let sprints = data?.values ? data.values : [];
   // conole.log(sprints);
   res.json({
-    sprints
+    sprints,
   });
 });
 
@@ -228,11 +243,10 @@ app.get("/alerts", async (req, res) => {
         };
       });
 
-    res.json(
-      {
-        // alerts_data,
-        data: data
-      });
+    res.json({
+      // alerts_data,
+      data: data,
+    });
   } catch (error) {
     console.error("Error fetching alerts:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -287,8 +301,9 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   const board_name = req.params.boardName;
 
   const sprintList = await getSprints(board_id);
-  const currentSprint = sprintList?.values?.find(sprint => sprint?.id == sprint_id)
-
+  const currentSprint = sprintList?.values?.find(
+    (sprint) => sprint?.id == sprint_id
+  );
 
   const response = await getSprintIssues(sprint_id);
   const story_subtask_map = {};
@@ -300,34 +315,36 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   // fetching the project data including project lead
   const data = await get_board_metadata(board_id);
   const project_data = [data?.location.projectKey, data?.location.projectId];
-  let project_key = project_data[0] !== null ? project_data[0] : project_data[1];
+  let project_key =
+    project_data[0] !== null ? project_data[0] : project_data[1];
   const dataForProjectLead = await get_project_data(project_key);
 
   for (let issue of response?.issues || []) {
     if (issue?.fields?.issuetype?.name !== "Sub-task") {
-
       // Filtering issuelinks for 'blocked by' and 'blocks'
-      const blockedBy = issue?.fields?.issuelinks
-        ?.filter(link => link?.type?.inward === "is blocked by")
-        ?.map(link => ({
-          id: link?.inwardIssue?.id,
-          key: link?.inwardIssue?.key,
-          summary: link?.inwardIssue?.fields?.summary,
-          status: link?.inwardIssue?.fields?.status?.name,
-          priority: link?.inwardIssue?.fields?.priority?.name,
-          type: link?.inwardIssue?.fields?.issuetype?.name
-        })) || [];
+      const blockedBy =
+        issue?.fields?.issuelinks
+          ?.filter((link) => link?.type?.inward === "is blocked by")
+          ?.map((link) => ({
+            id: link?.inwardIssue?.id,
+            key: link?.inwardIssue?.key,
+            summary: link?.inwardIssue?.fields?.summary,
+            status: link?.inwardIssue?.fields?.status?.name,
+            priority: link?.inwardIssue?.fields?.priority?.name,
+            type: link?.inwardIssue?.fields?.issuetype?.name,
+          })) || [];
 
-      const blocks = issue?.fields?.issuelinks
-        ?.filter(link => link?.type?.outward === "blocks")
-        ?.map(link => ({
-          id: link?.outwardIssue?.id,
-          key: link?.outwardIssue?.key,
-          summary: link?.outwardIssue?.fields?.summary,
-          status: link?.outwardIssue?.fields?.status?.name,
-          priority: link?.outwardIssue?.fields?.priority?.name,
-          type: link?.outwardIssue?.fields?.issuetype?.name
-        })) || [];
+      const blocks =
+        issue?.fields?.issuelinks
+          ?.filter((link) => link?.type?.outward === "blocks")
+          ?.map((link) => ({
+            id: link?.outwardIssue?.id,
+            key: link?.outwardIssue?.key,
+            summary: link?.outwardIssue?.fields?.summary,
+            status: link?.outwardIssue?.fields?.status?.name,
+            priority: link?.outwardIssue?.fields?.priority?.name,
+            type: link?.outwardIssue?.fields?.issuetype?.name,
+          })) || [];
       //for fetching members
       if (issue.fields.assignee) {
         let accountId = issue.fields.assignee.accountId.toString();
@@ -339,7 +356,7 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
               .substring(0, 2)
               .toUpperCase(),
             bgColor: GetRandomBGColor(),
-            emailAddress: issue.fields.assignee.emailAddress
+            emailAddress: issue.fields.assignee.emailAddress,
           };
           members.push(member);
           accountIdSet.add(accountId);
@@ -366,19 +383,32 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
 
       const story_id = issue.id;
       //for calculating the sprint duration and days spent
-      const sprintStartDate = new Date(issue.fields.sprint?.startDate.split('T')[0])
-      const sprintEndDate = new Date(issue.fields.sprint?.endDate.split('T')[0]);
+      const sprintStartDate = new Date(
+        issue.fields.sprint?.startDate.split("T")[0]
+      );
+      const sprintEndDate = new Date(
+        issue.fields.sprint?.endDate.split("T")[0]
+      );
       // Get the actual current date
-      const currentDate = new Date(new Date().toISOString().split('T')[0]);
+      const currentDate = new Date(new Date().toISOString().split("T")[0]);
       // Adjust the current date to be the minimum of the actual current date and the sprint end date
-      const adjustedCurrentDate = new Date(Math.min(currentDate, sprintEndDate));
+      const adjustedCurrentDate = new Date(
+        Math.min(currentDate, sprintEndDate)
+      );
       // Calculate whole sprint duration in days
       // Extracting only the date part
       // const sprintStartDateStr = sprintStartDate.toISOString().substring(0, 10);
       // const sprintEndDateStr = sprintEndDate.toISOString().substring(0, 10);
       // const currentDateStr = adjustedCurrentDate.toISOString().substring(0, 10);
-      const sprintDuration = Math.ceil((new Date(sprintEndDate) - new Date(sprintStartDate)) / (1000 * 60 * 60 * 24));
-      const daysSpent = Math.ceil((Math.min(new Date(currentDate), new Date(sprintEndDate)) - new Date(sprintStartDate)) / (1000 * 60 * 60 * 24));
+      const sprintDuration = Math.ceil(
+        (new Date(sprintEndDate) - new Date(sprintStartDate)) /
+          (1000 * 60 * 60 * 24)
+      );
+      const daysSpent = Math.ceil(
+        (Math.min(new Date(currentDate), new Date(sprintEndDate)) -
+          new Date(sprintStartDate)) /
+          (1000 * 60 * 60 * 24)
+      );
 
       const story = {
         story_id: story_id,
@@ -394,7 +424,9 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
           project_name: issue?.fields?.project?.name,
           project_key: issue?.fields?.project?.key,
           projectImage: issue?.fields?.project?.avatarUrls["32x32"],
-          project_lead: dataForProjectLead?.lead.displayName ? dataForProjectLead.lead.displayName : "",
+          project_lead: dataForProjectLead?.lead.displayName
+            ? dataForProjectLead.lead.displayName
+            : "",
         },
         board_id: board_id,
         board_name: board_name,
@@ -404,36 +436,56 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
         sprint_name: currentSprint?.name,
         sprint_start: getDate(currentSprint?.startDate),
         sprint_end: getDate(currentSprint?.endDate),
-        story_ac_hygiene: issue?.fields?.customfield_10156 !== null ? "YES" : "NO",
-        original_estimate: getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
-        remaining_estimate: getDate(issue?.fields?.timetracking?.remainingEstimate) || "Not added",
+        story_ac_hygiene:
+          issue?.fields?.customfield_10156 !== null ? "YES" : "NO",
+        original_estimate:
+          getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
+        remaining_estimate:
+          getDate(issue?.fields?.timetracking?.remainingEstimate) ||
+          "Not added",
         time_spent: issue?.fields?.timetracking?.timeSpent || "Not added",
         story_reviewers: issue?.fields?.customfield_10003
           ? issue.fields.customfield_10003.length !== 0
-            ? issue.fields.customfield_10003.map((r) => r.displayName).join(", ")
+            ? issue.fields.customfield_10003
+                .map((r) => r.displayName)
+                .join(", ")
             : "Reviewers not added"
           : "Reviewers not added",
-        story_points: issue?.fields?.customfield_10020 ?? issue?.fields?.customfield_10026 ?? 0,
+        story_points:
+          issue?.fields?.customfield_10020 ??
+          issue?.fields?.customfield_10026 ??
+          0,
         updated: getDate(issue?.fields?.updated),
         creator: issue?.fields?.creator?.displayName,
-        assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
+        assignee:
+          issue?.fields?.assignee !== null
+            ? issue.fields.assignee.displayName
+            : "Not added",
         email: issue?.fields?.assignee?.emailAddress,
-        duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue.fields.customfield_10018.length - 1]?.endDate : issue.fields.duedate),
+        duedate: getDate(
+          issue?.fields?.duedate == null
+            ? issue?.fields?.customfield_10018?.[
+                issue.fields.customfield_10018.length - 1
+              ]?.endDate
+            : issue.fields.duedate
+        ),
         sprintDuration: sprintDuration,
         daysSpent: daysSpent,
         daysLeft: calculateRemainingDays(currentSprint?.endDate),
         number_of_sub_tasks: issue?.fields?.subtasks?.length,
-        completed_sub_tasks: issue?.fields?.subtasks?.filter(subtask => subtask?.fields?.status?.name === "Done")?.length,
-        subtasks: issue?.fields?.subtasks?.map(subtask => {
+        completed_sub_tasks: issue?.fields?.subtasks?.filter(
+          (subtask) => subtask?.fields?.status?.name === "Done"
+        )?.length,
+        subtasks: issue?.fields?.subtasks?.map((subtask) => {
           return {
             id: subtask?.id,
             subtask_key: subtask?.key,
             status: subtask?.fields?.status?.name,
             subtaskName: subtask?.fields?.summary,
-            subtaskHistory: []
+            subtaskHistory: [],
           };
         }),
-        storyHistory: issue?.changelog?.histories?.map(history => {
+        storyHistory: issue?.changelog?.histories?.map((history) => {
           const lastChange = history?.items?.[history.items.length - 1];
           return {
             id: history?.id,
@@ -449,14 +501,20 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
       };
       story_subtask_map[story_id] = story;
       issues.push(story);
-    }
-    else if (issue.fields.issuetype.name === "Sub-task" && issue.fields.parent) {
+    } else if (
+      issue.fields.issuetype.name === "Sub-task" &&
+      issue.fields.parent
+    ) {
       const parent_id = issue.fields.parent.id;
-      const parent_story = issues.filter(findIssue => findIssue.id === parent_id)
-      issues.forEach(issueItem => {
-        const subtask = issueItem.subtasks.find(subtask => subtask.id === issue.id);
+      const parent_story = issues.filter(
+        (findIssue) => findIssue.id === parent_id
+      );
+      issues.forEach((issueItem) => {
+        const subtask = issueItem.subtasks.find(
+          (subtask) => subtask.id === issue.id
+        );
         if (subtask) {
-          subtask.subtaskHistory = issue.changelog.histories.map(history => {
+          subtask.subtaskHistory = issue.changelog.histories.map((history) => {
             const lastChange = history.items[history.items.length - 1];
             return {
               id: history.id,
@@ -538,18 +596,36 @@ app.get("/:boardId/:boardName/backlog", async (req, res) => {
           },
           board_id: boardId,
           board_name: boardName,
-          original_estimate: getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
-          remaining_estimate: getDate(issue?.fields?.timetracking?.remainingEstimate) || "Not added",
+          original_estimate:
+            getDate(issue?.fields?.timetracking?.originalEstimate) ||
+            "Not added",
+          remaining_estimate:
+            getDate(issue?.fields?.timetracking?.remainingEstimate) ||
+            "Not added",
           time_spent: issue?.fields?.timetracking?.timeSpent || "Not added",
-          story_points: issue?.fields?.customfield_10020 ?? issue?.fields?.customfield_10026 ?? 0,
+          story_points:
+            issue?.fields?.customfield_10020 ??
+            issue?.fields?.customfield_10026 ??
+            0,
           updated: getDate(issue?.fields?.updated),
           creator: issue?.fields?.creator?.displayName,
-          assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
+          assignee:
+            issue?.fields?.assignee !== null
+              ? issue.fields.assignee.displayName
+              : "Not added",
           email: issue?.fields?.assignee?.emailAddress,
-          duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue.fields.customfield_10018.length - 1]?.endDate : issue.fields.duedate),
+          duedate: getDate(
+            issue?.fields?.duedate == null
+              ? issue?.fields?.customfield_10018?.[
+                  issue.fields.customfield_10018.length - 1
+                ]?.endDate
+              : issue.fields.duedate
+          ),
           number_of_sub_tasks: issue?.fields?.subtasks?.length,
-          completed_sub_tasks: issue?.fields?.subtasks?.filter(subtask => subtask?.fields?.status?.name === "Done")?.length,
-          subtasks: issue?.fields?.subtasks?.map(subtask => {
+          completed_sub_tasks: issue?.fields?.subtasks?.filter(
+            (subtask) => subtask?.fields?.status?.name === "Done"
+          )?.length,
+          subtasks: issue?.fields?.subtasks?.map((subtask) => {
             return {
               id: subtask?.id,
               subtask_key: subtask?.key,
@@ -564,7 +640,9 @@ app.get("/:boardId/:boardName/backlog", async (req, res) => {
     }
 
     res.json({
-      totalLength: response?.issues?.filter((backlog) => (backlog?.fields?.issuetype?.name === "Story"))?.length,
+      totalLength: response?.issues?.filter(
+        (backlog) => backlog?.fields?.issuetype?.name === "Story"
+      )?.length,
       backlogsIssues,
       // length: backlogsIssues.length
     });
@@ -701,8 +779,8 @@ app.post("/sprint/gitdata", async (req, res) => {
 });
 
 //fetching gitLogs for specific sprint
-app.get('/:boardId/:boardName/sprint/:sprintId/gitLogs', async (req, res) => {
-  const { boardId, boardName, sprintId } = req.params
+app.get("/:boardId/:boardName/sprint/:sprintId/gitLogs", async (req, res) => {
+  const { boardId, boardName, sprintId } = req.params;
   try {
     const response = await getSprintIssues(sprintId);
 
@@ -720,8 +798,12 @@ app.get('/:boardId/:boardName/sprint/:sprintId/gitLogs', async (req, res) => {
                 board_name: boardName,
                 sprint_id: sprintId,
                 sprint_name: issue?.fields?.sprint?.name,
-                sprint_start: issue?.fields?.sprint?.startDate ? getDate(issue.fields.sprint.startDate) : "",
-                sprint_end: issue?.fields?.sprint?.endDate ? getDate(issue.fields.sprint.endDate) : "",
+                sprint_start: issue?.fields?.sprint?.startDate
+                  ? getDate(issue.fields.sprint.startDate)
+                  : "",
+                sprint_end: issue?.fields?.sprint?.endDate
+                  ? getDate(issue.fields.sprint.endDate)
+                  : "",
                 story_id: story_id,
                 story_key: issue?.key,
                 story_name: issue?.fields?.summary,
@@ -729,7 +811,10 @@ app.get('/:boardId/:boardName/sprint/:sprintId/gitLogs', async (req, res) => {
                 story_status: issue?.fields?.status?.statusCategory?.name,
                 status_name: issue?.fields?.status?.name,
                 creator: issue?.fields?.creator?.displayName,
-                assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
+                assignee:
+                  issue?.fields?.assignee !== null
+                    ? issue.fields.assignee.displayName
+                    : "Not added",
                 email: issue?.fields?.assignee?.emailAddress,
                 commitMessage: commit.message,
                 commitTimeStamp: commit.authorTimestamp,
@@ -740,24 +825,17 @@ app.get('/:boardId/:boardName/sprint/:sprintId/gitLogs', async (req, res) => {
                 commitUrl: commit.url,
               }))
             )
-          ) || []
+          ) || [];
         //if there is no commit for a issue, skip it no need to push in commits
-        if (IssueCommit.length == []) continue
+        if (IssueCommit.length == []) continue;
         else commits.push(IssueCommit);
-
       }
     }
     res.json(commits);
   } catch (error) {
-    res.json(
-      error
-    )
-
+    res.json(error);
   }
-
-
-
-})
+});
 
 app.get("/sprint/:sprintId/progress", async (req, res) => {
   const sprint_id = req.params.sprintId;
@@ -805,7 +883,7 @@ app.get("/sprint/:sprintId/progress", async (req, res) => {
   const values = Object.values(story_subtask_map);
   res.json({
     sprint_progress: values,
-    data
+    data,
   });
   // // conole.log({
   //   sprint_progress: values,
@@ -859,7 +937,6 @@ app.get("/sprint/:sprintId/members", async (req, res) => {
     const data = await getSprintIssues(sprint_id);
     const issues = data?.issues ? data.issues : [];
 
-
     let accountIdSet = new Set(); // Using a Set to ensure uniqueness
     let members = [];
 
@@ -873,7 +950,7 @@ app.get("/sprint/:sprintId/members", async (req, res) => {
             sprint_member_card_name: issue.fields.assignee.displayName
               .substring(0, 2)
               .toUpperCase(),
-            email: issue.fields.assignee.emailAddress
+            email: issue.fields.assignee.emailAddress,
           };
           members.push(member);
           accountIdSet.add(accountId);
@@ -907,12 +984,17 @@ app.get("/projectHistory/:memberEmail", async (req, res) => {
         projectId: issue?.fields?.project?.id,
         projectName: issue?.fields?.project?.name,
         projectImage: issue?.fields?.project?.avatarUrls["32x32"],
-        projectContribution: issue?.fields?.customfield_10020 == null ? 0 : issue.fields.customfield_10020,
+        projectContribution:
+          issue?.fields?.customfield_10020 == null
+            ? 0
+            : issue.fields.customfield_10020,
         projectTotalWork: null,
-        projectLead: null
+        projectLead: null,
       };
       // Find the project in the accumulator
-      const existingProject = acc.find(proj => proj.projectId === project.projectId);
+      const existingProject = acc.find(
+        (proj) => proj.projectId === project.projectId
+      );
       if (existingProject) {
         // If the project exists, add the story points
         existingProject.projectContribution += project.projectContribution;
@@ -936,19 +1018,20 @@ app.get("/projectHistory/:memberEmail", async (req, res) => {
       }, 0);
 
       project.projectTotalWork = projectTotalWork;
-      project.projectLead = projectData?.lead.displayName ? projectData.lead.displayName : ""
+      project.projectLead = projectData?.lead.displayName
+        ? projectData.lead.displayName
+        : "";
     }
 
     res.json({
       // response,
-      projectsWorkedOn: uniqueProjects
+      projectsWorkedOn: uniqueProjects,
     });
   } catch (error) {
     console.error("Error fetching issues for user:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 //# sprint history and sprint issues for a selected member
 app.get("/sprintsHistory/:email", async (req, res) => {
@@ -965,13 +1048,17 @@ app.get("/sprintsHistory/:email", async (req, res) => {
     const uniqueSprints = issues.reduce((acc, issue) => {
       // Access the sprints field; make sure it's an array
       const sprints = issue.fields.customfield_10018 || [];
-      const story = storyConvertor(issue)
+      const story = storyConvertor(issue);
       const addSprint = {
         boardId: null,
         sprintId: sprints?.[0]?.id,
         sprintName: sprints?.[0]?.name,
-        sprintStartDate: moment(sprints?.[0]?.startDate).format("D MMM YYYY, h:mm:ss A"),
-        sprintEndDate: moment(sprints?.[0]?.endDate).format("D MMM YYYY, h:mm:ss A"),
+        sprintStartDate: moment(sprints?.[0]?.startDate).format(
+          "D MMM YYYY, h:mm:ss A"
+        ),
+        sprintEndDate: moment(sprints?.[0]?.endDate).format(
+          "D MMM YYYY, h:mm:ss A"
+        ),
         daysLeft: calculateRemainingDays(sprints?.[0]?.endDate),
         sprintState: sprints?.[0]?.state,
         contributionMade: null,
@@ -982,17 +1069,16 @@ app.get("/sprintsHistory/:email", async (req, res) => {
           projectKey: issue?.fields?.project?.key,
           projectImage: issue?.fields?.project?.avatarUrls["32x32"],
         },
-        stories: [story]
+        stories: [story],
       };
 
       // Find if the sprint already exists in the accumulator
-      const existingSprint = acc.find(s => s.sprintId === addSprint.sprintId);
+      const existingSprint = acc.find((s) => s.sprintId === addSprint.sprintId);
 
       if (!existingSprint) {
         acc.push(addSprint);
-      }
-      else {
-        existingSprint.stories.push(story)
+      } else {
+        existingSprint.stories.push(story);
       }
 
       // sprints.forEach((sprint) => {
@@ -1010,41 +1096,50 @@ app.get("/sprintsHistory/:email", async (req, res) => {
     for (const sprint of uniqueSprints) {
       try {
         const response = await getSprintIssues(sprint.sprintId);
-        const boardId = await get_board_details_by_sprintId(sprint.sprintId)
+        const boardId = await get_board_details_by_sprintId(sprint.sprintId);
         const issues = response.issues;
 
         const contributionMade = issues
-          .filter((emailFilter) => emailFilter?.fields?.assignee?.emailAddress == email)
+          .filter(
+            (emailFilter) =>
+              emailFilter?.fields?.assignee?.emailAddress == email
+          )
           .filter((statusFilter) => statusFilter.fields?.status?.name == "Done")
           .reduce((total, issue) => {
-            const storyPoints = issue?.fields?.customfield_10020 == null ? 0 : issue?.fields?.customfield_10020;
+            const storyPoints =
+              issue?.fields?.customfield_10020 == null
+                ? 0
+                : issue?.fields?.customfield_10020;
             return total + storyPoints;
           }, 0);
 
         const sprintTotalWork = issues.reduce((total, issue) => {
-          const storyPoints = issue?.fields?.customfield_10020 == null ? 0 : issue?.fields?.customfield_10020;
+          const storyPoints =
+            issue?.fields?.customfield_10020 == null
+              ? 0
+              : issue?.fields?.customfield_10020;
           return total + storyPoints;
         }, 0);
 
         sprint.sprintTotalWork = sprintTotalWork;
         sprint.contributionMade = contributionMade;
         sprint.boardId = boardId;
-
       } catch (error) {
         console.error(`Error processing sprint ${sprint.sprintId}:`, error);
         // Handle or log the error as needed
       }
     }
     // Sort to get the latest sprint first
-    uniqueSprints.sort((a, b) => new Date(b.sprintEndDate) - new Date(a.sprintEndDate));
-
+    uniqueSprints.sort(
+      (a, b) => new Date(b.sprintEndDate) - new Date(a.sprintEndDate)
+    );
 
     res.json({
-      sprintsWorkedOn: uniqueSprints
+      sprintsWorkedOn: uniqueSprints,
     });
   } catch (error) {
     console.error("Error fetching issues for user:", error);
-    res.status(500).json({ error: error});
+    res.status(500).json({ error: error });
   }
 });
 
@@ -1061,11 +1156,6 @@ app.get("/issuesForProject/:projectId", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-
-
-
-
 
 // APIs for PI
 
@@ -1105,7 +1195,9 @@ app.get("/:boardID/stories", async (req, res) => {
         return {
           board_id,
           story_points:
-            issue?.fields?.customfield_10020 ?? issue?.fields?.customfield_10026 ?? 0,
+            issue?.fields?.customfield_10020 ??
+            issue?.fields?.customfield_10026 ??
+            0,
           assignee:
             issue.fields.assignee !== null
               ? issue.fields.assignee.displayName
@@ -1134,8 +1226,8 @@ app.get("/:boardID/stories", async (req, res) => {
           story_reviewers: issue.fields.customfield_10003
             ? issue.fields.customfield_10003.length !== 0
               ? issue.fields.customfield_10003
-                .map((r, i) => r.displayName)
-                .join(", ")
+                  .map((r, i) => r.displayName)
+                  .join(", ")
               : "Reviewers not added"
             : "Reviewers not added",
         };
@@ -1146,7 +1238,7 @@ app.get("/:boardID/stories", async (req, res) => {
 
   res.json({
     // issues,
-    stories
+    stories,
   });
   // // conole.log({
   //   stories,
@@ -1322,7 +1414,7 @@ app.get("/:boardID/sprint/members", async (req, res) => {
                   issue.fields.assignee !== null
                     ? issue.fields.assignee.displayName
                     : "Not added",
-                email: issue.fields.assignee.emailAddress
+                email: issue.fields.assignee.emailAddress,
               };
               members.push(member);
               names.add(name);
@@ -1671,7 +1763,8 @@ app.get("/:boardId/project", async (req, res) => {
     const data = await get_board_metadata(board_id);
     const project_data = [data?.location.projectKey, data?.location.projectId];
     // console.log(data)
-    let project_key = project_data[0] !== null ? project_data[0] : project_data[1];
+    let project_key =
+      project_data[0] !== null ? project_data[0] : project_data[1];
     // conole.log(project_key);
     const response = await get_project_data(project_key);
     // console.log(response);
@@ -1748,8 +1841,6 @@ function subtskCalaulation(all_pie_data, active_sprints) {
   return [response_data_obj];
 }
 
-
-
 app.post("/allboards/activesprints", async (req, res) => {
   try {
     const data = req.body;
@@ -1775,8 +1866,10 @@ app.post("/allboards/activesprints", async (req, res) => {
 
       // const active_sprints = sprintsData?.values? sprintsData.values.filter((sprint) => sprint.state === "active"): [];
 
-      const active_sprints = sprintsData?.values ? sprintsData.values.filter((sprint) => sprint.state === "active") : [];
-      // 
+      const active_sprints = sprintsData?.values
+        ? sprintsData.values.filter((sprint) => sprint.state === "active")
+        : [];
+      //
       //   [
       //   sprintsData?.values?.filter((sprint) => sprint.state === "closed").sort(
       //     (a, b) => new Date(b.completeDate) - new Date(a.completeDate)
@@ -1801,27 +1894,36 @@ app.post("/allboards/activesprints", async (req, res) => {
           (issue) => issue?.fields?.status?.statusCategory?.name === "Done"
         );
         const in_progress_stories = stories?.filter(
-          (issue) => issue?.fields?.status?.statusCategory?.name === "In Progress"
+          (issue) =>
+            issue?.fields?.status?.statusCategory?.name === "In Progress"
         );
-        let totalStoriesPoints = 0
-        let totalInProgressPoints = 0
+        let totalStoriesPoints = 0;
+        let totalInProgressPoints = 0;
         //for getting the total story points for each sprint
         for (let i = 0; i < stories?.length; i++) {
-          totalStoriesPoints = totalStoriesPoints + (stories[i]?.fields?.customfield_10020 == null ? 0 : stories[i]?.fields?.customfield_10020)
+          totalStoriesPoints =
+            totalStoriesPoints +
+            (stories[i]?.fields?.customfield_10020 == null
+              ? 0
+              : stories[i]?.fields?.customfield_10020);
         }
         //for getting the total story points in progress currently
-        in_progress_stories?.forEach(story => {
-          totalInProgressPoints = totalInProgressPoints + (story?.fields?.customfield_10020 == null ? 0 : story?.fields?.customfield_10020)
+        in_progress_stories?.forEach((story) => {
+          totalInProgressPoints =
+            totalInProgressPoints +
+            (story?.fields?.customfield_10020 == null
+              ? 0
+              : story?.fields?.customfield_10020);
         });
         //for getting the total members working in each sprint
         const uniqueAssignees = {};
-        stories?.forEach(ticket => {
+        stories?.forEach((ticket) => {
           const assignee = ticket?.fields?.assignee;
           if (assignee && !uniqueAssignees[assignee?.accountId]) {
             uniqueAssignees[assignee?.accountId] = {
               name: assignee?.displayName,
               accountId: assignee?.accountId,
-              emailAddress: assignee?.emailAddress
+              emailAddress: assignee?.emailAddress,
             };
           }
         });
@@ -1936,7 +2038,6 @@ app.delete("/delete/favboard/:board_id", async (req, res) => {
   }
 });
 
-
 // get summary boards
 app.get("/summary/activeboards", async (req, res) => {
   try {
@@ -2026,7 +2127,6 @@ const formatDate = (dateStr) =>
     .toLocaleString("sv-SE", { timeZone: "Asia/Kolkata", hour12: false })
     .replace(" ", "T") + dateStr.slice(-5).replace(":", "");
 
-
 // LMS and L&D
 app.post("/lms/LandD/tracking", async (req, res) => {
   try {
@@ -2096,17 +2196,18 @@ app.post("/lms/LandD/login", async (req, res) => {
   }
 });
 
-
 //new route to post  course to particular employee
 app.post("/lms/LandD/:employeeID/coursesvideolist", async (req, res) => {
   try {
     const { employeeID } = req.params;
     const courses = req.body; // Expecting an array of course objects
 
-    const employee = await lms_landd_employees.findOne({ 'Employee ID': employeeID });
+    const employee = await lms_landd_employees.findOne({
+      "Employee ID": employeeID,
+    });
 
     if (!employee) {
-      return res.status(404).json({ error: 'Employee not found' });
+      return res.status(404).json({ error: "Employee not found" });
     }
 
     // Initialize CoursesAligned if it's undefined
@@ -2133,7 +2234,6 @@ app.post("/lms/LandD/:employeeID/coursesvideolist", async (req, res) => {
   }
 });
 
-
 // new route getting employee data with course reference
 
 app.get("/lms/LandD/employee/:employeeID", async (req, res) => {
@@ -2141,10 +2241,12 @@ app.get("/lms/LandD/employee/:employeeID", async (req, res) => {
     const { employeeID } = req.params;
 
     // Find the employee by EmployeeID and populate the CoursesAligned field
-    const employee = await lms_landd_employees.findOne({ 'Employee ID': employeeID }).populate('CoursesAligned');
+    const employee = await lms_landd_employees
+      .findOne({ "Employee ID": employeeID })
+      .populate("CoursesAligned");
 
     if (!employee) {
-      return res.status(404).json({ error: 'Employee not found' });
+      return res.status(404).json({ error: "Employee not found" });
     }
 
     res.status(200).json(employee);
@@ -2155,62 +2257,68 @@ app.get("/lms/LandD/employee/:employeeID", async (req, res) => {
 });
 
 // new api for updating course based on employee_id  and  course_id
-app.put("/lms/LandD/:employeeID/coursesvideolist/:courseID", async (req, res) => {
-  try {
-    // console.log("Endpoint hit"); // Log to ensure the endpoint is hit
+app.put(
+  "/lms/LandD/:employeeID/coursesvideolist/:courseID",
+  async (req, res) => {
+    try {
+      // console.log("Endpoint hit"); // Log to ensure the endpoint is hit
 
-    const { employeeID, courseID } = req.params;
-    const updateData = req.body;
+      const { employeeID, courseID } = req.params;
+      const updateData = req.body;
 
-    // console.log("Employee ID:", employeeID); // Log the employee ID
-    // console.log("Course ID:", courseID); // Log the course ID
+      // console.log("Employee ID:", employeeID); // Log the employee ID
+      // console.log("Course ID:", courseID); // Log the course ID
 
-    // Ensure courseID is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(courseID)) {
-      console.log("Invalid courseID");
-      return res.status(400).json({ error: "Invalid courseID" });
-    }
-
-    // Find the employee by EmployeeID
-    const employee = await lms_landd_employees.findOne({ 'Employee ID': employeeID }).populate('CoursesAligned');
-
-    if (!employee) {
-      console.log("Employee not found");
-      return res.status(404).json({ error: "Employee not found" });
-    }
-
-    // console.log("Employee found:", employee);
-
-    // Find the index of the course in the CoursesAligned array
-    const course = employee.CoursesAligned.find(course => course._id.equals(courseID));
-
-    if (!course) {
-      console.log("Course not found");
-      return res.status(404).json({ error: "Course not found" });
-    }
-
-    // console.log("Current course data:", course);
-
-    // Update specific fields of the course
-    for (const key in updateData) {
-      if (updateData.hasOwnProperty(key)) {
-        course[key] = updateData[key];
+      // Ensure courseID is a valid ObjectId
+      if (!mongoose.Types.ObjectId.isValid(courseID)) {
+        console.log("Invalid courseID");
+        return res.status(400).json({ error: "Invalid courseID" });
       }
+
+      // Find the employee by EmployeeID
+      const employee = await lms_landd_employees
+        .findOne({ "Employee ID": employeeID })
+        .populate("CoursesAligned");
+
+      if (!employee) {
+        console.log("Employee not found");
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      // console.log("Employee found:", employee);
+
+      // Find the index of the course in the CoursesAligned array
+      const course = employee.CoursesAligned.find((course) =>
+        course._id.equals(courseID)
+      );
+
+      if (!course) {
+        console.log("Course not found");
+        return res.status(404).json({ error: "Course not found" });
+      }
+
+      // console.log("Current course data:", course);
+
+      // Update specific fields of the course
+      for (const key in updateData) {
+        if (updateData.hasOwnProperty(key)) {
+          course[key] = updateData[key];
+        }
+      }
+
+      // Save the updated employee document
+      await course.save();
+
+      // console.log("Updated course data:", course);
+
+      // Send the updated course as the response
+      res.status(200).json(course);
+    } catch (error) {
+      console.error("Error updating course:", error);
+      res.status(500).json({ error: "Internal Server Error" });
     }
-
-
-    // Save the updated employee document
-    await course.save();
-
-    // console.log("Updated course data:", course);
-
-    // Send the updated course as the response
-    res.status(200).json(course);
-  } catch (error) {
-    console.error("Error updating course:", error);
-    res.status(500).json({ error: "Internal Server Error" });
   }
-});
+);
 
 app.get("/lms/LandD/coursesvideolist", async (req, res) => {
   try {
@@ -2230,7 +2338,7 @@ app.get("/lms/LandD/:employeeID/coursesvideolist", async (req, res) => {
     const employeeID = req.params.employeeID;
 
     // Query the database directly using the employeeID
-    const courses = await getCourse.find({ 'Employee ID': employeeID });
+    const courses = await getCourse.find({ "Employee ID": employeeID });
 
     res.status(200).json(courses);
   } catch (error) {
@@ -2238,7 +2346,6 @@ app.get("/lms/LandD/:employeeID/coursesvideolist", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 // get employee data from zoho with regex name............
 
@@ -2250,32 +2357,26 @@ app.get("/getprofile", async (req, res) => {
   }
 
   // Split the name into parts
-  const nameParts = name.split(' ');
+  const nameParts = name.split(" ");
 
   try {
     if (nameParts.length < 2) {
       // Single name case
-      const regex = new RegExp(name, 'i'); // 'i' makes the regex case-insensitive
+      const regex = new RegExp(name, "i"); // 'i' makes the regex case-insensitive
       const employeeData = await lms_landd_employees.find({
-        $or: [
-          { 'First Name': regex },
-          { 'Last Name': regex }
-        ]
+        $or: [{ "First Name": regex }, { "Last Name": regex }],
       });
       return res.status(200).json(employeeData);
     } else {
       // First name and last name case
       const firstName = nameParts[0];
-      const lastName = nameParts.slice(1).join(' '); // Handle cases with middle names or multiple last names
+      const lastName = nameParts.slice(1).join(" "); // Handle cases with middle names or multiple last names
 
-      const firstNameRegex = new RegExp(firstName, 'i'); // 'i' makes the regex case-insensitive
-      const lastNameRegex = new RegExp(lastName, 'i');   // 'i' makes the regex case-insensitive
+      const firstNameRegex = new RegExp(firstName, "i"); // 'i' makes the regex case-insensitive
+      const lastNameRegex = new RegExp(lastName, "i"); // 'i' makes the regex case-insensitive
 
       const employeeData = await lms_landd_employees.find({
-        $or: [
-          { 'First Name': firstNameRegex },
-          { 'Last Name': lastNameRegex }
-        ]
+        $or: [{ "First Name": firstNameRegex }, { "Last Name": lastNameRegex }],
       });
 
       return res.status(200).json(employeeData);
@@ -2286,66 +2387,121 @@ app.get("/getprofile", async (req, res) => {
   }
 });
 
-app.post('/registration', async (req, res) => {
-  const { name, email, profileImage, role } = req.body
+app.post("/registration", async (req, res) => {
+  const { name, email, profileImage, role } = req.body;
   try {
-    const findUser = await User.findOne({ email: email })
+    const findUser = await User.findOne({ email: email });
     if (findUser) {
       return res.status(200).json({
-        user: findUser
-      })
+        user: findUser,
+      });
     }
-    const user = await User.create({ name: name, email: email, profileImage: profileImage, role: role })
-    const saveUser = await user.save()
+    const user = await User.create({
+      name: name,
+      email: email,
+      profileImage: profileImage,
+      role: role,
+    });
+    const saveUser = await user.save();
     res.status(201).json({
       message: "new user created",
-      user
-    })
+      user,
+    });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(404).json({
-      message: error
-    })
+      message: error,
+    });
   }
+});
 
-})
-
-app.post('/saveComment', async (req, res) => {
-  const { author, email, commentMessage, commentLevel, boardId, sprintId, boardName, sprintName } = req.body
+app.post("/saveComment", async (req, res) => {
+  const {
+    author,
+    email,
+    commentMessage,
+    commentLevel,
+    boardId,
+    sprintId,
+    boardName,
+    sprintName,
+  } = req.body;
   try {
-    const comment = await Comments.create({ author: author, email: email, commentMessage: commentMessage, commentLevel: commentLevel, boardId: boardId, sprintId: sprintId, boardName: boardName, sprintName: sprintName })
-    const saveComment = await comment.save()
+    const comment = await Comments.create({
+      author: author,
+      email: email,
+      commentMessage: commentMessage,
+      commentLevel: commentLevel,
+      boardId: boardId,
+      sprintId: sprintId,
+      boardName: boardName,
+      sprintName: sprintName,
+    });
+    const saveComment = await comment.save();
     res.status(201).json({
       message: "Comment added ",
-    })
+    });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(404).json({
-      message: error
-    })
+      message: error,
+    });
   }
+});
 
-})
-
-app.get('/getAllComments', async (req, res) => {
+app.get("/getAllComments", async (req, res) => {
   try {
-    const comments = await Comments.find()
+    const comments = await Comments.find();
     res.status(201).json({
       comments: comments,
       message: "Comments fetched ",
-    })
+    });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(404).json({
-      message: error
-    })
+      message: error,
+    });
   }
+});
 
-})
+app.get("/getAllInteractions", async (req, res) => {
+  try {
+    const interactions = await Interactions.find();
+    res.status(201).json({
+      interactions: interactions,
+      message: "Interactions fetched ",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({
+      message: error,
+    });
+  }
+});
 
+// POST route to create a new interaction
+app.post("/interactions", async (req, res) => {
+  const { sprintId, userEmail, interactedEmail, interactionType, comment } =
+    req.body;
 
+  try {
+    const newInteraction = new Interactions({
+      sprintId,
+      userEmail,
+      interactedEmail,
+      interactionType,
+      comment,
+    });
 
-
+    // Save the interaction to the database
+    const savedInteraction = await newInteraction.save();
+    res.status(201).json(savedInteraction);
+    console.log("Interaction saved")
+  } catch (error) {
+    console.error("Error saving interaction:", error);
+    res.status(500).json({ message: "Error saving interaction", error });
+  }
+});
 
 app.listen(PORT, () => {
   // // conole.log(`Server running on port ${PORT}...`);
