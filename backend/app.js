@@ -143,14 +143,12 @@ app.get("/details/project/:projectId", async (req, res) => {
         ?.filter((issue) => issue?.story_status?.toLowerCase() === "done")
         ?.reduce((total, story) => total + story?.story_points, 0);
       // Calculate project success probability
-      const successProbability =
-        totalStories > 0 ? (doneStoriesLength / totalStories) * 100 : 0;
-      const allSprints = allIssues
-        ?.map((story) => ({
-          sprintName: story?.sprint_name,
-          sprintId: story?.sprint_id,
-          sprintState: story?.sprint_state,
-        })) // Extract sprint names and IDs
+      const successProbability = totalStories > 0 ? (doneStoriesLength / totalStories) * 100 : 0;
+      const allSprints = allIssues?.map(story => ({
+        sprintName: story?.sprint_name,
+        sprintId: story?.sprint_id,
+        sprintState: story?.sprint_state
+      })) // Extract sprint names and IDs
         .filter(Boolean); // Remove any undefined or null values
       const uniqueAllSprints = Array.from(
         new Map(
@@ -174,6 +172,7 @@ app.get("/details/project/:projectId", async (req, res) => {
       };
       projectSuccess = projectSuccessData;
     }
+
 
     res.json({
       // response: response,
@@ -297,13 +296,12 @@ app.get("/:boardId/activeSprint", async (req, res) => {
 // for getting stories along with subtasks
 app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   const sprint_id = req.params.sprintId;
-  const board_id = req.params.boardId;
-  const board_name = req.params.boardName;
+  const boardId = req.params.boardId;
+  const boardName = req.params.boardName;
 
-  const sprintList = await getSprints(board_id);
-  const currentSprint = sprintList?.values?.find(
-    (sprint) => sprint?.id == sprint_id
-  );
+  const sprintList = await getSprints(boardId);
+  const currentSprint = sprintList?.values?.find(sprint => sprint?.id == sprint_id)
+
 
   const response = await getSprintIssues(sprint_id);
   const story_subtask_map = {};
@@ -313,7 +311,7 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   // let commitsData = []
 
   // fetching the project data including project lead
-  const data = await get_board_metadata(board_id);
+  const data = await get_board_metadata(boardId);
   const project_data = [data?.location.projectKey, data?.location.projectId];
   let project_key =
     project_data[0] !== null ? project_data[0] : project_data[1];
@@ -321,47 +319,26 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
 
   for (let issue of response?.issues || []) {
     if (issue?.fields?.issuetype?.name !== "Sub-task") {
-      // Filtering issuelinks for 'blocked by' and 'blocks'
-      const blockedBy =
-        issue?.fields?.issuelinks
-          ?.filter((link) => link?.type?.inward === "is blocked by")
-          ?.map((link) => ({
-            id: link?.inwardIssue?.id,
-            key: link?.inwardIssue?.key,
-            summary: link?.inwardIssue?.fields?.summary,
-            status: link?.inwardIssue?.fields?.status?.name,
-            priority: link?.inwardIssue?.fields?.priority?.name,
-            type: link?.inwardIssue?.fields?.issuetype?.name,
-          })) || [];
-
-      const blocks =
-        issue?.fields?.issuelinks
-          ?.filter((link) => link?.type?.outward === "blocks")
-          ?.map((link) => ({
-            id: link?.outwardIssue?.id,
-            key: link?.outwardIssue?.key,
-            summary: link?.outwardIssue?.fields?.summary,
-            status: link?.outwardIssue?.fields?.status?.name,
-            priority: link?.outwardIssue?.fields?.priority?.name,
-            type: link?.outwardIssue?.fields?.issuetype?.name,
-          })) || [];
-      //for fetching members
       if (issue.fields.assignee) {
         let accountId = issue.fields.assignee.accountId.toString();
         if (!accountIdSet.has(accountId)) {
           let member = {
             account_id: accountId,
-            fullName: issue.fields.assignee.displayName,
-            cardName: issue.fields.assignee.displayName
+            fullName: issue?.fields?.assignee?.displayName,
+            cardName: issue?.fields?.assignee?.displayName
               .substring(0, 2)
               .toUpperCase(),
             bgColor: GetRandomBGColor(),
-            emailAddress: issue.fields.assignee.emailAddress,
+            emailAddress: issue?.fields?.assignee?.emailAddress,
+            team: issue?.fields?.customfield_10001?.name
           };
           members.push(member);
           accountIdSet.add(accountId);
         }
       }
+
+      const story = storyConvertor(issue, dataForProjectLead, boardId, boardName, currentSprint)
+      issues.push(story);
 
       //for gitCommits
       // const githubCommits = await getGithubCommits(issue.id);
@@ -381,178 +358,122 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
       //     )
       //   ) || []
 
-      const story_id = issue.id;
-      //for calculating the sprint duration and days spent
-      const sprintStartDate = new Date(
-        issue.fields.sprint?.startDate.split("T")[0]
-      );
-      const sprintEndDate = new Date(
-        issue.fields.sprint?.endDate.split("T")[0]
-      );
-      // Get the actual current date
-      const currentDate = new Date(new Date().toISOString().split("T")[0]);
-      // Adjust the current date to be the minimum of the actual current date and the sprint end date
-      const adjustedCurrentDate = new Date(
-        Math.min(currentDate, sprintEndDate)
-      );
-      // Calculate whole sprint duration in days
-      // Extracting only the date part
-      // const sprintStartDateStr = sprintStartDate.toISOString().substring(0, 10);
-      // const sprintEndDateStr = sprintEndDate.toISOString().substring(0, 10);
-      // const currentDateStr = adjustedCurrentDate.toISOString().substring(0, 10);
-      const sprintDuration = Math.ceil(
-        (new Date(sprintEndDate) - new Date(sprintStartDate)) /
-          (1000 * 60 * 60 * 24)
-      );
-      const daysSpent = Math.ceil(
-        (Math.min(new Date(currentDate), new Date(sprintEndDate)) -
-          new Date(sprintStartDate)) /
-          (1000 * 60 * 60 * 24)
-      );
+      // const story_id = issue.id;
 
-      const story = {
-        story_id: story_id,
-        story_key: issue?.key,
-        story_name: issue?.fields?.summary,
-        story_type: issue?.fields?.issuetype?.name,
-        issueIcon: issue?.fields?.issuetype?.iconUrl,
-        story_status: issue?.fields?.status?.statusCategory?.name,
-        blockedBy: blockedBy,
-        blocks: blocks,
-        projectData: {
-          project_id: issue?.fields?.project?.id,
-          project_name: issue?.fields?.project?.name,
-          project_key: issue?.fields?.project?.key,
-          projectImage: issue?.fields?.project?.avatarUrls["32x32"],
-          project_lead: dataForProjectLead?.lead.displayName
-            ? dataForProjectLead.lead.displayName
-            : "",
-        },
-        board_id: board_id,
-        board_name: board_name,
-        status_name: issue?.fields?.status?.name,
-        sprint_id: currentSprint?.id,
-        sprint_state: currentSprint?.state,
-        sprint_name: currentSprint?.name,
-        sprint_start: getDate(currentSprint?.startDate),
-        sprint_end: getDate(currentSprint?.endDate),
-        story_ac_hygiene:
-          issue?.fields?.customfield_10156 !== null ? "YES" : "NO",
-        original_estimate:
-          getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
-        remaining_estimate:
-          getDate(issue?.fields?.timetracking?.remainingEstimate) ||
-          "Not added",
-        time_spent: issue?.fields?.timetracking?.timeSpent || "Not added",
-        story_reviewers: issue?.fields?.customfield_10003
-          ? issue.fields.customfield_10003.length !== 0
-            ? issue.fields.customfield_10003
-                .map((r) => r.displayName)
-                .join(", ")
-            : "Reviewers not added"
-          : "Reviewers not added",
-        story_points:
-          issue?.fields?.customfield_10020 ??
-          issue?.fields?.customfield_10026 ??
-          0,
-        updated: getDate(issue?.fields?.updated),
-        creator: issue?.fields?.creator?.displayName,
-        assignee:
-          issue?.fields?.assignee !== null
-            ? issue.fields.assignee.displayName
-            : "Not added",
-        email: issue?.fields?.assignee?.emailAddress,
-        duedate: getDate(
-          issue?.fields?.duedate == null
-            ? issue?.fields?.customfield_10018?.[
-                issue.fields.customfield_10018.length - 1
-              ]?.endDate
-            : issue.fields.duedate
-        ),
-        sprintDuration: sprintDuration,
-        daysSpent: daysSpent,
-        daysLeft: calculateRemainingDays(currentSprint?.endDate),
-        number_of_sub_tasks: issue?.fields?.subtasks?.length,
-        completed_sub_tasks: issue?.fields?.subtasks?.filter(
-          (subtask) => subtask?.fields?.status?.name === "Done"
-        )?.length,
-        subtasks: issue?.fields?.subtasks?.map((subtask) => {
-          return {
-            id: subtask?.id,
-            subtask_key: subtask?.key,
-            status: subtask?.fields?.status?.name,
-            subtaskName: subtask?.fields?.summary,
-            subtaskHistory: [],
-          };
-        }),
-        storyHistory: issue?.changelog?.histories?.map((history) => {
-          const lastChange = history?.items?.[history.items.length - 1];
-          return {
-            id: history?.id,
-            author: history?.author?.displayName,
-            email: history?.author?.emailAddress,
-            timeLog: getDate(history?.created),
-            changeType: lastChange?.field,
-            changedFrom: lastChange?.fromString,
-            changedTo: lastChange?.toString,
-          };
-        }),
-        // commits: IssueCommits
-      };
-      story_subtask_map[story_id] = story;
-      issues.push(story);
-    } else if (
-      issue.fields.issuetype.name === "Sub-task" &&
-      issue.fields.parent
-    ) {
-      const parent_id = issue.fields.parent.id;
-      const parent_story = issues.filter(
-        (findIssue) => findIssue.id === parent_id
-      );
-      issues.forEach((issueItem) => {
-        const subtask = issueItem.subtasks.find(
-          (subtask) => subtask.id === issue.id
-        );
-        if (subtask) {
-          subtask.subtaskHistory = issue.changelog.histories.map((history) => {
-            const lastChange = history.items[history.items.length - 1];
-            return {
-              id: history.id,
-              author: history.author.displayName,
-              email: history.author.emailAddress,
-              timeLog: getDate(history.created),
-              changeType: lastChange.field,
-              changedFrom: lastChange.fromString,
-              changedTo: lastChange.toString,
-            };
-          });
-        }
-      });
-      // story_subtask_map[parent_id];
-      // if (parent_story) {
-      //   parent_story.subtasks.filter(subtask => subtask.id === issue.id).subtaskHistory?.push(
-      //     issue.changelog.histories.map(history => {
-      //       const lastChange = history.items[history.items.length - 1];
-      //       return {
-      //         id: history.id,
-      //         author: history.author.displayName,
-      //         email: history.author.emailAddress,
-      //         changedWhen: getDate(history.created),
-      //         changeType: lastChange.field,
-      //         changedFrom: lastChange.fromString,
-      //         changedTo: lastChange.toString,
-      //       };
-      //     })
-      //   )
-      //   // console.log(findSubtask)
-      //   // if (issue.fields.customfield_10020) {
-      //   //   parent_story.story_points += issue.fields.customfield_10020;
-      //   // }
-      //   // if (issue.fields.status.name === "Done") {
-      //   //   parent_story.completed_sub_tasks++;
-      //   // }
-      // }
+      // const story = {
+      //   story_id: story_id,
+      //   story_key: issue?.key,
+      //   story_name: issue?.fields?.summary,
+      //   story_type: issue?.fields?.issuetype?.name,
+      //   issueIcon: issue?.fields?.issuetype?.iconUrl,
+      //   story_status: issue?.fields?.status?.statusCategory?.name,
+      //   blockedBy: blockedBy,
+      //   blocks: blocks,
+      //   projectData: {
+      //     project_id: issue?.fields?.project?.id,
+      //     project_name: issue?.fields?.project?.name,
+      //     project_key: issue?.fields?.project?.key,
+      //     projectImage: issue?.fields?.project?.avatarUrls["32x32"],
+      //     project_lead: dataForProjectLead?.lead.displayName ? dataForProjectLead.lead.displayName : "",
+      //   },
+      //   board_id: board_id,
+      //   board_name: board_name,
+      //   status_name: issue?.fields?.status?.name,
+      //   sprint_id: currentSprint?.id,
+      //   sprint_state: currentSprint?.state,
+      //   sprint_name: currentSprint?.name,
+      //   sprint_start: getDate(currentSprint?.startDate),
+      //   sprint_end: getDate(currentSprint?.endDate),
+      //   story_ac_hygiene: issue?.fields?.customfield_10156 !== null ? "YES" : "NO",
+      //   original_estimate: getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
+      //   remaining_estimate: getDate(issue?.fields?.timetracking?.remainingEstimate) || "Not added",
+      //   time_spent: issue?.fields?.timetracking?.timeSpent || "Not added",
+      //   story_reviewers: issue?.fields?.customfield_10003
+      //     ? issue.fields.customfield_10003.length !== 0
+      //       ? issue.fields.customfield_10003.map((r) => r.displayName).join(", ")
+      //       : "Reviewers not added"
+      //     : "Reviewers not added",
+      //   story_points: issue?.fields?.customfield_10020 ?? issue?.fields?.customfield_10026 ?? 0,
+      //   updated: getDate(issue?.fields?.updated),
+      //   creator: issue?.fields?.creator?.displayName,
+      //   assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
+      //   email: issue?.fields?.assignee?.emailAddress,
+      //   duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue.fields.customfield_10018.length - 1]?.endDate : issue.fields.duedate),
+      //   sprintDuration: sprintDuration,
+      //   daysSpent: daysSpent,
+      //   daysLeft: calculateRemainingDays(currentSprint?.endDate),
+      //   number_of_sub_tasks: issue?.fields?.subtasks?.length,
+      //   completed_sub_tasks: issue?.fields?.subtasks?.filter(subtask => subtask?.fields?.status?.name === "Done")?.length,
+      //   subtasks: issue?.fields?.subtasks?.map(subtask => {
+      //     return {
+      //       id: subtask?.id,
+      //       subtask_key: subtask?.key,
+      //       status: subtask?.fields?.status?.name,
+      //       subtaskName: subtask?.fields?.summary,
+      //       subtaskHistory: []
+      //     };
+      //   }),
+      //   storyHistory: issue?.changelog?.histories?.map(history => {
+      //     const lastChange = history?.items?.[history.items.length - 1];
+      //     return {
+      //       id: history?.id,
+      //       author: history?.author?.displayName,
+      //       email: history?.author?.emailAddress,
+      //       timeLog: getDate(history?.created),
+      //       changeType: lastChange?.field,
+      //       changedFrom: lastChange?.fromString,
+      //       changedTo: lastChange?.toString,
+      //     };
+      //   }),
+      //   // commits: IssueCommits
+      // };
+      // story_subtask_map[story_id] = story;
     }
+    // else if (issue.fields.issuetype.name === "Sub-task" && issue.fields.parent) {
+    //   const parent_id = issue.fields.parent.id;
+    //   const parent_story = issues.filter(findIssue => findIssue.id === parent_id)
+    //   issues.forEach(issueItem => {
+    //     const subtask = issueItem.subtasks.find(subtask => subtask.id === issue.id);
+    //     if (subtask) {
+    //       subtask.subtaskHistory = issue.changelog.histories.map(history => {
+    //         const lastChange = history.items[history.items.length - 1];
+    //         return {
+    //           id: history.id,
+    //           author: history.author.displayName,
+    //           email: history.author.emailAddress,
+    //           timeLog: getDate(history.created),
+    //           changeType: lastChange.field,
+    //           changedFrom: lastChange.fromString,
+    //           changedTo: lastChange.toString,
+    //         };
+    //       });
+    //     }
+    //   });
+    //   // story_subtask_map[parent_id];
+    //   // if (parent_story) {
+    //   //   parent_story.subtasks.filter(subtask => subtask.id === issue.id).subtaskHistory?.push(
+    //   //     issue.changelog.histories.map(history => {
+    //   //       const lastChange = history.items[history.items.length - 1];
+    //   //       return {
+    //   //         id: history.id,
+    //   //         author: history.author.displayName,
+    //   //         email: history.author.emailAddress,
+    //   //         changedWhen: getDate(history.created),
+    //   //         changeType: lastChange.field,
+    //   //         changedFrom: lastChange.fromString,
+    //   //         changedTo: lastChange.toString,
+    //   //       };
+    //   //     })
+    //   //   )
+    //   //   // console.log(findSubtask)
+    //   //   // if (issue.fields.customfield_10020) {
+    //   //   //   parent_story.story_points += issue.fields.customfield_10020;
+    //   //   // }
+    //   //   // if (issue.fields.status.name === "Done") {
+    //   //   //   parent_story.completed_sub_tasks++;
+    //   //   // }
+    //   // }
+    // }
   }
 
   res.json({
@@ -574,67 +495,9 @@ app.get("/:boardId/:boardName/backlog", async (req, res) => {
 
     const story_subtask_map = {};
     const backlogsIssues = [];
-
-    // fetching the project data including project lead
-
     for (let issue of response?.issues || []) {
-      if (issue?.fields?.issuetype?.name === "Story") {
-        //for fetching members
-
-        const story_id = issue.id;
-
-        const story = {
-          story_id: story_id,
-          story_key: issue?.key,
-          story_name: issue?.fields?.summary,
-          issue_type: issue?.fields?.issuetype?.name,
-          issue_status: issue?.fields?.status?.statusCategory?.name,
-          projectData: {
-            project_id: issue?.fields?.project?.id,
-            project_name: issue?.fields?.project?.name,
-            project_key: issue?.fields?.project?.key,
-          },
-          board_id: boardId,
-          board_name: boardName,
-          original_estimate:
-            getDate(issue?.fields?.timetracking?.originalEstimate) ||
-            "Not added",
-          remaining_estimate:
-            getDate(issue?.fields?.timetracking?.remainingEstimate) ||
-            "Not added",
-          time_spent: issue?.fields?.timetracking?.timeSpent || "Not added",
-          story_points:
-            issue?.fields?.customfield_10020 ??
-            issue?.fields?.customfield_10026 ??
-            0,
-          updated: getDate(issue?.fields?.updated),
-          creator: issue?.fields?.creator?.displayName,
-          assignee:
-            issue?.fields?.assignee !== null
-              ? issue.fields.assignee.displayName
-              : "Not added",
-          email: issue?.fields?.assignee?.emailAddress,
-          duedate: getDate(
-            issue?.fields?.duedate == null
-              ? issue?.fields?.customfield_10018?.[
-                  issue.fields.customfield_10018.length - 1
-                ]?.endDate
-              : issue.fields.duedate
-          ),
-          number_of_sub_tasks: issue?.fields?.subtasks?.length,
-          completed_sub_tasks: issue?.fields?.subtasks?.filter(
-            (subtask) => subtask?.fields?.status?.name === "Done"
-          )?.length,
-          subtasks: issue?.fields?.subtasks?.map((subtask) => {
-            return {
-              id: subtask?.id,
-              subtask_key: subtask?.key,
-              status: subtask?.fields?.status?.name,
-              subtaskName: subtask?.fields?.summary,
-            };
-          }),
-        };
-        story_subtask_map[story_id] = story;
+      if (issue?.fields?.issuetype?.name !== "Sub-task") {
+        const story = storyConvertor(issue, null, boardId, boardName)
         backlogsIssues.push(story);
       }
     }
