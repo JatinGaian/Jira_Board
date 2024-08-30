@@ -3,7 +3,7 @@ const moment = require("moment");
 const { calculateRemainingDays } = require("./calculateRemainingDays");
 
 
-const storyConvertor = (issue, dataForProjectLead) => {
+const storyConvertor = (issue, dataForProjectLead, boardId, boardName, currentSprint) => {
     const getDate = (date) => moment(date).format("MMM Do YYYY, h:mm:ss A");
     // Filtering issuelinks for 'blocked by' and 'blocks'
     const blockedBy = issue?.fields?.issuelinks
@@ -27,8 +27,10 @@ const storyConvertor = (issue, dataForProjectLead) => {
             priority: link?.outwardIssue?.fields?.priority?.name,
             type: link?.outwardIssue?.fields?.issuetype?.name
         })) || [];
-
+    
     const story = {
+        board_id: boardId ?? null,
+        board_name: boardName?? null,
         story_id: issue?.id,
         story_key: issue?.key,
         story_name: issue?.fields?.summary,
@@ -45,11 +47,11 @@ const storyConvertor = (issue, dataForProjectLead) => {
         blockedBy: blockedBy,
         blocks: blocks,
         status_name: issue?.fields?.status?.name,
-        sprint_id: issue?.fields?.customfield_10018?.[0]?.id,
-        sprint_state: issue?.fields?.customfield_10018?.[0]?.state,
-        sprint_name: issue?.fields?.customfield_10018?.[0]?.name,
-        sprint_start: getDate(issue?.fields?.customfield_10018?.startDate),
-        sprint_end: getDate(issue?.fields?.customfield_10018?.endDate),
+        sprint_id: currentSprint ? currentSprint?.id : issue?.fields?.customfield_10018?.[0]?.id,
+        sprint_state: currentSprint ? currentSprint?.state : issue?.fields?.customfield_10018?.[0]?.state,
+        sprint_name: currentSprint ? currentSprint?.name : issue?.fields?.customfield_10018?.[0]?.name,
+        sprint_start: getDate(currentSprint ? currentSprint?.startDate : issue?.fields?.customfield_10018?.startDate),
+        sprint_end: getDate(currentSprint ? currentSprint?.endDate : issue?.fields?.customfield_10018?.endDate),
         story_ac_hygiene: issue?.fields?.customfield_10156 !== null ? "YES" : "NO",
         original_estimate: getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
         remaining_estimate: getDate(issue?.fields?.timetracking?.remainingEstimate) || "Not added",
@@ -65,6 +67,7 @@ const storyConvertor = (issue, dataForProjectLead) => {
         creator: issue?.fields?.creator?.displayName,
         assignee: issue?.fields?.assignee !== null ? issue?.fields?.assignee?.displayName : "Not added",
         email: issue?.fields?.assignee?.emailAddress,
+        team: issue?.fields?.customfield_10001?.name,
         duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue?.fields?.customfield_10018?.length - 1]?.endDate : issue?.fields?.duedate),
         // sprintDuration: sprintDuration,
         // daysSpent: daysSpent,
