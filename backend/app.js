@@ -161,7 +161,7 @@ app.get("/details/project/:projectId", async (req, res) => {
 
       function countBlockedIssues(issues) {
         let blockedCount = 0;
-        issues.forEach(issue => {
+        issues?.forEach(issue => {
           // Check if blockedBy array is not empty
           if (issue.blockedBy && issue.blockedBy?.[0]?.id) {
             blockedCount++;
