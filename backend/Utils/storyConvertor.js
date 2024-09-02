@@ -1,6 +1,7 @@
 
 const moment = require("moment");
 const { calculateRemainingDays } = require("./calculateRemainingDays");
+const { calculateSprintDuration } = require("./calculateSprintDuration");
 
 
 const storyConvertor = (issue, dataForProjectLead, boardId, boardName, currentSprint) => {
@@ -28,6 +29,9 @@ const storyConvertor = (issue, dataForProjectLead, boardId, boardName, currentSp
             type: link?.outwardIssue?.fields?.issuetype?.name
         })) || [];
     
+    // const sprintStartDate = new Date(currentSprint?.startDate.split("T")[0]);
+    // const sprintEndDate = new Date( currentSprint?.endDate.split("T")[0]);
+    
     const story = {
         board_id: boardId ?? null,
         board_name: boardName?? null,
@@ -44,8 +48,8 @@ const storyConvertor = (issue, dataForProjectLead, boardId, boardName, currentSp
             projectImage: issue?.fields?.project?.avatarUrls["32x32"],
             project_lead:  dataForProjectLead ? (dataForProjectLead?.lead.displayName ? dataForProjectLead.lead.displayName : "") : null,
         },
-        blockedBy: blockedBy,
-        blocks: blocks,
+        blockedBy: blockedBy?.[0]?.id ? blockedBy : null,
+        blocks: blocks?.[0]?.id ? blocks : null,
         status_name: issue?.fields?.status?.name,
         sprint_id: currentSprint ? currentSprint?.id : issue?.fields?.customfield_10018?.[0]?.id,
         sprint_state: currentSprint ? currentSprint?.state : issue?.fields?.customfield_10018?.[0]?.state,
@@ -69,9 +73,9 @@ const storyConvertor = (issue, dataForProjectLead, boardId, boardName, currentSp
         email: issue?.fields?.assignee?.emailAddress,
         team: issue?.fields?.customfield_10001?.name,
         duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue?.fields?.customfield_10018?.length - 1]?.endDate : issue?.fields?.duedate),
-        // sprintDuration: sprintDuration,
+        sprintDuration: calculateSprintDuration(currentSprint?.startDate, currentSprint?.endDate),
         // daysSpent: daysSpent,
-        daysLeft: calculateRemainingDays(issue?.fields?.customfield_10018?.endDate),
+        daysLeft: calculateRemainingDays(currentSprint ? currentSprint?.endDate : issue?.fields?.customfield_10018?.endDate),
         number_of_sub_tasks: issue?.fields?.subtasks?.length,
         completed_sub_tasks: issue?.fields?.subtasks?.filter(subtask => subtask?.fields?.status?.name === "Done")?.length,
         subtasks: issue?.fields?.subtasks?.map(subtask => {
