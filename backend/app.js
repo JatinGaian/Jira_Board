@@ -125,7 +125,7 @@ app.get("/details/project/:projectId", async (req, res) => {
   try {
     const response = await get_project_all_detailed_issues(projectId);
     const dataForProjectLead = await get_project_data(projectId);
-    if (response.length > 0) {
+    if (response?.length > 0) {
       for (const issue of response) {
         const story = storyConvertor(issue, dataForProjectLead);
         allIssues.push(story);
@@ -158,6 +158,20 @@ app.get("/details/project/:projectId", async (req, res) => {
           ])
         ).values()
       );
+
+      function countBlockedIssues(issues) {
+        let blockedCount = 0;
+        issues.forEach(issue => {
+          // Check if blockedBy array is not empty
+          if (issue.blockedBy && issue.blockedBy?.[0]?.id) {
+            blockedCount++;
+          }
+        });
+        return blockedCount;
+      }
+
+      const blockedIssuesCount = countBlockedIssues(allIssues);
+
       const projectSuccessData = {
         projectId: projectId,
         projectName: allIssues?.[0]?.projectData?.project_name,
@@ -169,6 +183,7 @@ app.get("/details/project/:projectId", async (req, res) => {
         doneStories: doneStoriesLength,
         totalDoneStoryPoints: totalDoneStoryPoints,
         successProbability: successProbability.toFixed(2) + "%",
+        blockedIssuesCount: blockedIssuesCount
       };
       projectSuccess = projectSuccessData;
     }
@@ -339,141 +354,7 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
 
       const story = storyConvertor(issue, dataForProjectLead, boardId, boardName, currentSprint)
       issues.push(story);
-
-      //for gitCommits
-      // const githubCommits = await getGithubCommits(issue.id);
-      // commitsData.push(githubCommits)
-      // const IssueCommits =
-      //   githubCommits?.detail?.flatMap((detail) =>
-      //     detail.repositories.flatMap((repo) =>
-      //       repo.commits.map((commit) => ({
-      //         message: commit.message,
-      //         authorTimestamp: commit.authorTimestamp,
-      //         // authorTimestamp: formatDate(commit.authorTimestamp),
-      //         repositoryName: repo.name,
-      //         repositoryUrl: repo.url,
-      //         filesChanged: commit.files.length,
-      //         commitUrl: commit.url,
-      //       }))
-      //     )
-      //   ) || []
-
-      // const story_id = issue.id;
-
-      // const story = {
-      //   story_id: story_id,
-      //   story_key: issue?.key,
-      //   story_name: issue?.fields?.summary,
-      //   story_type: issue?.fields?.issuetype?.name,
-      //   issueIcon: issue?.fields?.issuetype?.iconUrl,
-      //   story_status: issue?.fields?.status?.statusCategory?.name,
-      //   blockedBy: blockedBy,
-      //   blocks: blocks,
-      //   projectData: {
-      //     project_id: issue?.fields?.project?.id,
-      //     project_name: issue?.fields?.project?.name,
-      //     project_key: issue?.fields?.project?.key,
-      //     projectImage: issue?.fields?.project?.avatarUrls["32x32"],
-      //     project_lead: dataForProjectLead?.lead.displayName ? dataForProjectLead.lead.displayName : "",
-      //   },
-      //   board_id: board_id,
-      //   board_name: board_name,
-      //   status_name: issue?.fields?.status?.name,
-      //   sprint_id: currentSprint?.id,
-      //   sprint_state: currentSprint?.state,
-      //   sprint_name: currentSprint?.name,
-      //   sprint_start: getDate(currentSprint?.startDate),
-      //   sprint_end: getDate(currentSprint?.endDate),
-      //   story_ac_hygiene: issue?.fields?.customfield_10156 !== null ? "YES" : "NO",
-      //   original_estimate: getDate(issue?.fields?.timetracking?.originalEstimate) || "Not added",
-      //   remaining_estimate: getDate(issue?.fields?.timetracking?.remainingEstimate) || "Not added",
-      //   time_spent: issue?.fields?.timetracking?.timeSpent || "Not added",
-      //   story_reviewers: issue?.fields?.customfield_10003
-      //     ? issue.fields.customfield_10003.length !== 0
-      //       ? issue.fields.customfield_10003.map((r) => r.displayName).join(", ")
-      //       : "Reviewers not added"
-      //     : "Reviewers not added",
-      //   story_points: issue?.fields?.customfield_10020 ?? issue?.fields?.customfield_10026 ?? 0,
-      //   updated: getDate(issue?.fields?.updated),
-      //   creator: issue?.fields?.creator?.displayName,
-      //   assignee: issue?.fields?.assignee !== null ? issue.fields.assignee.displayName : "Not added",
-      //   email: issue?.fields?.assignee?.emailAddress,
-      //   duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue.fields.customfield_10018.length - 1]?.endDate : issue.fields.duedate),
-      //   sprintDuration: sprintDuration,
-      //   daysSpent: daysSpent,
-      //   daysLeft: calculateRemainingDays(currentSprint?.endDate),
-      //   number_of_sub_tasks: issue?.fields?.subtasks?.length,
-      //   completed_sub_tasks: issue?.fields?.subtasks?.filter(subtask => subtask?.fields?.status?.name === "Done")?.length,
-      //   subtasks: issue?.fields?.subtasks?.map(subtask => {
-      //     return {
-      //       id: subtask?.id,
-      //       subtask_key: subtask?.key,
-      //       status: subtask?.fields?.status?.name,
-      //       subtaskName: subtask?.fields?.summary,
-      //       subtaskHistory: []
-      //     };
-      //   }),
-      //   storyHistory: issue?.changelog?.histories?.map(history => {
-      //     const lastChange = history?.items?.[history.items.length - 1];
-      //     return {
-      //       id: history?.id,
-      //       author: history?.author?.displayName,
-      //       email: history?.author?.emailAddress,
-      //       timeLog: getDate(history?.created),
-      //       changeType: lastChange?.field,
-      //       changedFrom: lastChange?.fromString,
-      //       changedTo: lastChange?.toString,
-      //     };
-      //   }),
-      //   // commits: IssueCommits
-      // };
-      // story_subtask_map[story_id] = story;
     }
-    // else if (issue.fields.issuetype.name === "Sub-task" && issue.fields.parent) {
-    //   const parent_id = issue.fields.parent.id;
-    //   const parent_story = issues.filter(findIssue => findIssue.id === parent_id)
-    //   issues.forEach(issueItem => {
-    //     const subtask = issueItem.subtasks.find(subtask => subtask.id === issue.id);
-    //     if (subtask) {
-    //       subtask.subtaskHistory = issue.changelog.histories.map(history => {
-    //         const lastChange = history.items[history.items.length - 1];
-    //         return {
-    //           id: history.id,
-    //           author: history.author.displayName,
-    //           email: history.author.emailAddress,
-    //           timeLog: getDate(history.created),
-    //           changeType: lastChange.field,
-    //           changedFrom: lastChange.fromString,
-    //           changedTo: lastChange.toString,
-    //         };
-    //       });
-    //     }
-    //   });
-    //   // story_subtask_map[parent_id];
-    //   // if (parent_story) {
-    //   //   parent_story.subtasks.filter(subtask => subtask.id === issue.id).subtaskHistory?.push(
-    //   //     issue.changelog.histories.map(history => {
-    //   //       const lastChange = history.items[history.items.length - 1];
-    //   //       return {
-    //   //         id: history.id,
-    //   //         author: history.author.displayName,
-    //   //         email: history.author.emailAddress,
-    //   //         changedWhen: getDate(history.created),
-    //   //         changeType: lastChange.field,
-    //   //         changedFrom: lastChange.fromString,
-    //   //         changedTo: lastChange.toString,
-    //   //       };
-    //   //     })
-    //   //   )
-    //   //   // console.log(findSubtask)
-    //   //   // if (issue.fields.customfield_10020) {
-    //   //   //   parent_story.story_points += issue.fields.customfield_10020;
-    //   //   // }
-    //   //   // if (issue.fields.status.name === "Done") {
-    //   //   //   parent_story.completed_sub_tasks++;
-    //   //   // }
-    //   // }
-    // }
   }
 
   res.json({
@@ -1107,12 +988,7 @@ app.get("/:boardID/stories", async (req, res) => {
   //   stories,
   // });
 });
-// for understanding
-// if variable==100 ? 100 < x ? 10 : null : not
-// {{[{},{}],[]}}
 
-// This API is to fetch all sprint progress
-// for a specific board
 app.get("/:boardID/sprint/progress", async (req, res) => {
   const board_id = req.params.boardID;
   const data = await getBoardIssues(board_id);

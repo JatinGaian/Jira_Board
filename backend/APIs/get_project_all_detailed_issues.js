@@ -32,17 +32,6 @@ async function get_project_all_detailed_issues(projectId) {
 
             const response = await axios.request(config);
             const issues = response.data.issues;
-
-            // const issueDetails = issues.map(issue => {
-            //     const story = storyConvertor(issue);
-            //     if (story) {
-            //         return story;
-            //     } else {
-            //         console.warn(`Story conversion failed for issue: ${issue?.key}`);
-            //         return {}; // Or handle as needed
-            //     }
-            // });
-
             allIssues = allIssues.concat(issues);
 
             if (issues.length < maxResults) {
