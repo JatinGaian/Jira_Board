@@ -16,7 +16,7 @@ async function getProjectSuccess(projectId) {
         const baseUrl = `https://${domain}.atlassian.net`;
         // Modify the JQL query to include all issues, including those in the backlog (sprint is EMPTY)
         const jqlQuery = `project = "${projectId}" AND (sprint is EMPTY OR sprint is not EMPTY)`;
-        const fields = "summary,customfield_10020,customfield_10026,customfield_10018,status,project,issuetype,issuelinks"; // Extended fields to retrieve
+        const fields = "summary,customfield_10020,customfield_10026,customfield_10018,status,project,issuetype,issuelinks,id"; // Extended fields to retrieve
         let startAt = 0;
         let maxResults = 100;
         let allIssues = [];
@@ -56,6 +56,7 @@ async function getProjectSuccess(projectId) {
                     })) || null;
 
                 return {
+                    id:issue?.id,
                     key: issue.key,
                     summary: issue?.fields?.summary,
                     storyPoints: issue?.fields?.customfield_10020 ?? issue?.fields?.customfield_10026 ?? 0,

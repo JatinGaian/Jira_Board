@@ -4,11 +4,14 @@ require("dotenv").config();
 const username = process.env.ATLASSIAN_USERNAME;
 const password = process.env.ATLASSIAN_API_KEY;
 const domain = process.env.DOMAIN;
+const encodedToken = process.env.ENCODED_TOKEN
+// const encodedToken = Buffer.from(`${username}:${password}`).toString('base64');
 
 const auth = {
   username: username,
   password: password,
 };
+// console.log(encodedToken)
 
 //Gets all boards using the Jira Cloud REST API with pagination
 async function get_all_boards() {
@@ -21,7 +24,10 @@ async function get_all_boards() {
       const config = {
         method: "get",
         url: `${baseUrl}/rest/agile/1.0/board?startAt=${startAt}&type=scrum`,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          // "Authorization": `Basic ${encodedToken}` // Use Basic Auth with the encoded token
+         },
         auth: auth,
       };
 
