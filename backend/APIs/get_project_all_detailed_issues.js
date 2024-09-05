@@ -24,6 +24,9 @@ async function get_project_all_detailed_issues(projectId) {
         while (true) {
             const config = {
                 method: "get",
+                params: {
+                    expand: 'changelog'
+                },
                 // url: `${baseUrl}/rest/api/2/search?jql=${encodeURIComponent(jqlQuery)}&fields=key,${fields}&startAt=${startAt}&maxResults=${maxResults}`,
                 url: `${baseUrl}/rest/api/2/search?jql=${encodeURIComponent(jqlQuery)}&startAt=${startAt}&maxResults=${maxResults}`,
                 headers: { "Content-Type": "application/json" },

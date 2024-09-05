@@ -98,7 +98,7 @@ app.get("/allBoards", async (req, res) => {
       projectId: null,
     });
     // console.log(response, activeBoards);
-    res.json({ response });
+    res.json({ response, data : data });
   } catch (error) {
     console.error("Error fetching boards:", error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -193,6 +193,7 @@ app.get("/details/project/:projectId", async (req, res) => {
       // response: response,
       projectSuccess: projectSuccess,
       allIssues: allIssues,
+      response: response
     });
   } catch (error) {
     console.error("Error fetching boards:", error);
