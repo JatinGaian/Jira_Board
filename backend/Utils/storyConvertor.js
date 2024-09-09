@@ -7,8 +7,7 @@ const { calculateSprintDuration } = require("./calculateSprintDuration");
 const storyConvertor = (issue, dataForProjectLead, boardId, boardName, currentSprint) => {
     const getDate = (date) => moment(date).format("MMM Do YYYY, h:mm:ss A");
     // Filtering issuelinks for 'blocked by' and 'blocks'
-    const blockedBy = issue?.fields?.issuelinks
-        ?.filter(link => link?.type?.inward === "is blocked by")
+    const blockedBy = issue?.fields?.issuelinks?.filter(link => link.hasOwnProperty('inwardIssue'))
         ?.map(link => ({
             id: link?.inwardIssue?.id,
             key: link?.inwardIssue?.key,
@@ -18,8 +17,7 @@ const storyConvertor = (issue, dataForProjectLead, boardId, boardName, currentSp
             type: link?.inwardIssue?.fields?.issuetype?.name
         })) || [];
 
-    const blocks = issue?.fields?.issuelinks
-        ?.filter(link => link.type.outward === "blocks")
+    const blocks = issue?.fields?.issuelinks?.filter(link => link.hasOwnProperty('outwardIssue'))
         ?.map(link => ({
             id: link?.outwardIssue?.id,
             key: link?.outwardIssue?.key,

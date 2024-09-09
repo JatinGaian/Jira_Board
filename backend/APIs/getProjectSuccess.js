@@ -94,7 +94,9 @@ async function getProjectSuccess(projectId) {
             totalStories: totalStories,
             doneStories: doneStories,
             successProbability: successProbability.toFixed(2) + '%',
-            allIssues: allIssues
+            allIssues: allIssues,
+            length:allIssues?.length
+
         };
 
     } catch (error) {

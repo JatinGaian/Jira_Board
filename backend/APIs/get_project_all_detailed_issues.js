@@ -29,9 +29,23 @@ async function get_project_all_detailed_issues(projectId) {
                 },
                 // url: `${baseUrl}/rest/api/2/search?jql=${encodeURIComponent(jqlQuery)}&fields=key,${fields}&startAt=${startAt}&maxResults=${maxResults}`,
                 url: `${baseUrl}/rest/api/2/search?jql=${encodeURIComponent(jqlQuery)}&startAt=${startAt}&maxResults=${maxResults}`,
+                // url: `${baseUrl}/rest/api/2/search&startAt=${startAt}&maxResults=${maxResults}`,
                 headers: { "Content-Type": "application/json" },
                 auth: auth,
             };
+            // const config = {
+            //     method: "get",
+            //     params: {
+            //         jql: `project=${projectId}`,
+            //         expand: 'changelog',
+            //         startAt: startAt,
+            //         maxResults: maxResults
+            //     },
+            //     url: `${baseUrl}/rest/api/2/search`,
+            //     headers: { "Content-Type": "application/json" },
+            //     auth: auth,
+            // };
+
 
             const response = await axios.request(config);
             const issues = response.data.issues;
