@@ -1,5 +1,6 @@
 const express = require("express");
 const moment = require("moment");
+const axios = require("axios");
 
 const cache = require("memory-cache"); // In-memory caching library
 
@@ -31,6 +32,7 @@ const { GetRandomBGColor } = require("./Utils/GetRandomBGColor");
 // const summaryJsonpath = require("./boardsJson/summaryBoards.json")
 const fs = require("fs").promises;
 const mongo_uri = process.env.MONGO_URI;
+const mib_bearer = process.env.MIB_BEARER_TOKEN;
 const app = express();
 const mongoose = require("mongoose");
 const User = require("./Models/UserSchema");
@@ -81,13 +83,13 @@ app.get("/allBoards", async (req, res) => {
     );
     let response = activeBoards
       ? activeBoards.map((board) => ({
-        board_id: board.id,
-        board_name: board.name,
-        board_type: board.type,
-        project_key: board.location ? board.location.projectKey : null,
-        project_name: board.location ? board.location.projectName : null,
-        projectId: board.location ? board.location.projectId : null,
-      }))
+          board_id: board.id,
+          board_name: board.name,
+          board_type: board.type,
+          project_key: board.location ? board.location.projectKey : null,
+          project_name: board.location ? board.location.projectName : null,
+          projectId: board.location ? board.location.projectId : null,
+        }))
       : [];
 
     response.push({
@@ -144,12 +146,14 @@ app.get("/details/project/:projectId", async (req, res) => {
         ?.filter((issue) => issue?.story_status?.toLowerCase() === "done")
         ?.reduce((total, story) => total + story?.story_points, 0);
       // Calculate project success probability
-      const successProbability = totalStories > 0 ? (doneStoriesLength / totalStories) * 100 : 0;
-      const allSprints = allIssues?.map(story => ({
-        sprintName: story?.sprint_name,
-        sprintId: story?.sprint_id,
-        sprintState: story?.sprint_state
-      })) // Extract sprint names and IDs
+      const successProbability =
+        totalStories > 0 ? (doneStoriesLength / totalStories) * 100 : 0;
+      const allSprints = allIssues
+        ?.map((story) => ({
+          sprintName: story?.sprint_name,
+          sprintId: story?.sprint_id,
+          sprintState: story?.sprint_state,
+        })) // Extract sprint names and IDs
         .filter(Boolean); // Remove any undefined or null values
       const uniqueAllSprints = Array.from(
         new Map(
@@ -162,7 +166,7 @@ app.get("/details/project/:projectId", async (req, res) => {
 
       function countBlockedIssues(issues) {
         let blockedCount = 0;
-        issues?.forEach(issue => {
+        issues?.forEach((issue) => {
           // Check if blockedBy array is not empty
           if (issue.blockedBy && issue.blockedBy?.[0]?.id) {
             blockedCount++;
@@ -184,18 +188,17 @@ app.get("/details/project/:projectId", async (req, res) => {
         doneStories: doneStoriesLength,
         totalDoneStoryPoints: totalDoneStoryPoints,
         successProbability: successProbability.toFixed(2) + "%",
-        blockedIssuesCount: blockedIssuesCount
+        blockedIssuesCount: blockedIssuesCount,
       };
       projectSuccess = projectSuccessData;
     }
-
 
     res.json({
       // response: response,
       projectSuccess: projectSuccess,
       allIssues: allIssues,
       response: response,
-      length: response?.length
+      length: response?.length,
     });
   } catch (error) {
     console.error("Error fetching boards:", error);
@@ -318,8 +321,9 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
   const boardName = req.params.boardName;
 
   const sprintList = await getSprints(boardId);
-  const currentSprint = sprintList?.values?.find(sprint => sprint?.id == sprint_id)
-
+  const currentSprint = sprintList?.values?.find(
+    (sprint) => sprint?.id == sprint_id
+  );
 
   const response = await getSprintIssues(sprint_id);
   const story_subtask_map = {};
@@ -348,14 +352,20 @@ app.get("/:boardId/:boardName/sprint/:sprintId/stories", async (req, res) => {
               .toUpperCase(),
             bgColor: GetRandomBGColor(),
             emailAddress: issue?.fields?.assignee?.emailAddress,
-            team: issue?.fields?.customfield_10001?.name
+            team: issue?.fields?.customfield_10001?.name,
           };
           members.push(member);
           accountIdSet.add(accountId);
         }
       }
 
-      const story = storyConvertor(issue, dataForProjectLead, boardId, boardName, currentSprint)
+      const story = storyConvertor(
+        issue,
+        dataForProjectLead,
+        boardId,
+        boardName,
+        currentSprint
+      );
       issues.push(story);
     }
   }
@@ -381,7 +391,7 @@ app.get("/:boardId/:boardName/backlog", async (req, res) => {
     const backlogsIssues = [];
     for (let issue of response?.issues || []) {
       if (issue?.fields?.issuetype?.name !== "Sub-task") {
-        const story = storyConvertor(issue, null, boardId, boardName)
+        const story = storyConvertor(issue, null, boardId, boardName);
         backlogsIssues.push(story);
       }
     }
@@ -973,8 +983,8 @@ app.get("/:boardID/stories", async (req, res) => {
           story_reviewers: issue.fields.customfield_10003
             ? issue.fields.customfield_10003.length !== 0
               ? issue.fields.customfield_10003
-                .map((r, i) => r.displayName)
-                .join(", ")
+                  .map((r, i) => r.displayName)
+                  .join(", ")
               : "Reviewers not added"
             : "Reviewers not added",
         };
@@ -1673,7 +1683,9 @@ app.post("/allboards/activesprints", async (req, res) => {
         const totalMembers = Object.values(uniqueAssignees);
         // const boardBacklogs = await get_backlogs(board_id);
         for (const issue of stories) {
-          const blockedByLinks = issue?.fields?.issuelinks?.filter(link => link.hasOwnProperty('inwardIssue'));
+          const blockedByLinks = issue?.fields?.issuelinks?.filter((link) =>
+            link.hasOwnProperty("inwardIssue")
+          );
 
           if (blockedByLinks && blockedByLinks.length > 0) {
             const blockedBy = [];
@@ -1681,7 +1693,9 @@ app.post("/allboards/activesprints", async (req, res) => {
             // Use for...of instead of forEach to handle async/await
             for (const link of blockedByLinks) {
               // Fetch the issue details asynchronously for each blocked issue
-              const issueDetails = await get_issue_details_by_id(link?.inwardIssue?.id);
+              const issueDetails = await get_issue_details_by_id(
+                link?.inwardIssue?.id
+              );
 
               blockedBy.push({
                 id: link?.inwardIssue?.id,
@@ -1690,7 +1704,11 @@ app.post("/allboards/activesprints", async (req, res) => {
                 status: link?.inwardIssue?.fields?.status?.name,
                 priority: link?.inwardIssue?.fields?.priority?.name,
                 type: link?.inwardIssue?.fields?.issuetype?.name,
-                sprintDetails: issueDetails?.fields?.sprint || issueDetails?.fields?.customfield_10018?.[issueDetails?.fields?.customfield_10018?.length - 1], // Add sprint details from fetched issue
+                sprintDetails:
+                  issueDetails?.fields?.sprint ||
+                  issueDetails?.fields?.customfield_10018?.[
+                    issueDetails?.fields?.customfield_10018?.length - 1
+                  ], // Add sprint details from fetched issue
               });
             }
 
@@ -1705,7 +1723,6 @@ app.post("/allboards/activesprints", async (req, res) => {
             });
           }
         }
-
 
         activeSprints.push({
           board_id: board_id,
@@ -1727,7 +1744,7 @@ app.post("/allboards/activesprints", async (req, res) => {
           total_story_points: totalStoriesPoints,
           total_inProgress_points: totalInProgressPoints,
           members: totalMembers,
-          dependencies: sprintDependencies
+          dependencies: sprintDependencies,
         });
       }
     };
@@ -1743,18 +1760,18 @@ app.post("/allboards/activesprints", async (req, res) => {
   }
 });
 
-app.get('/issueDetails/:id', async (req, res) => {
-  const { id } = req.params
+app.get("/issueDetails/:id", async (req, res) => {
+  const { id } = req.params;
   try {
-    const issueDetails = await get_issue_details_by_id(id)
+    const issueDetails = await get_issue_details_by_id(id);
     res.json({ issueDetails: issueDetails });
   } catch (error) {
     res.json({
-      error: error
-    })
-    console.log(error)
+      error: error,
+    });
+    console.log(error);
   }
-})
+});
 
 // // //
 
@@ -2287,25 +2304,89 @@ app.post("/interactions", async (req, res) => {
     // Save the interaction to the database
     const savedInteraction = await newInteraction.save();
     res.status(201).json(savedInteraction);
-    console.log("Interaction saved")
+    console.log("Interaction saved");
   } catch (error) {
     console.error("Error saving interaction:", error);
     res.status(500).json({ message: "Error saving interaction", error });
   }
 });
 
-app.post('/mib/webhook', async (req, res) => {
-  const issueData = req.body.issue;
-  // // Extract important data from the webhook payload
-  // const issueKey = issueData.key;
-  // const issueSummary = issueData.fields.summary;
-  // const issueStatus = issueData.fields.status.name;
-  // const updatedTime = issueData.fields.updated;
+//Endpoint for webhooks
+app.post("/mib/webhook", async (req, res) => {
+  const body = req.body;
+  console.log(body);
+  let transactionType = "";
+  let sourceId = "";
+  let transactionData = {};
 
-  res.json({
-    issueData: issueData
-  })
-})
+  if (body.issue) {
+    transactionType = "issue";
+    sourceId = body.issue.id;
+    transactionData = {
+      issueKey: body.issue.key,
+      issueSummary: body.issue.fields.summary,
+      issueStatus: body.issue.fields.status.name,
+      updatedTime: body.issue.fields.updated,
+    };
+  } else if (body.sprint) {
+    transactionType = "sprint";
+    sourceId = body.sprint.id;
+    transactionData = {
+      sprintId: body.sprint.id,
+      sprintName: body.sprint.name,
+      sprintState: body.sprint.state,
+    };
+  } else if (body.project) {
+    transactionType = "project";
+    sourceId = body.project.id;
+    transactionData = {
+      projectId: body.project.id,
+      projectName: body.project.name,
+      projectKey: body.project.key,
+    };
+  } else {
+    return res.status(400).json({ error: "Unrecognized event type" });
+  }
+
+  const dataToIngest = {
+    transactionType,
+    sourceId,
+    isProcessed: false,
+    createdAt: new Date().toISOString(),
+    transactionData,
+  };
+
+  console.log("Payload to ingest:", JSON.stringify(dataToIngest, null, 2));
+
+  try {
+    const response = await axios.post(
+      "https://ig.gov-cloud.ai/tf-entity-ingestion/v1.0/schemas/66f100f74006bd33cd1a3832/instance?upsert=true",
+      dataToIngest,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${mib_bearer}`,
+        },
+      }
+    );
+
+    if (response.status >= 200 && response.status < 300) {
+      res
+        .status(200)
+        .json({ message: "Data ingested successfully into the schema" });
+    } else {
+      res
+        .status(response.status)
+        .json({ error: "Failed to ingest data into the schema" });
+    }
+  } catch (error) {
+    console.error(
+      "Error ingesting data:",
+      error.response ? error.response.data : error.message
+    );
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 app.listen(PORT, () => {
   // // conole.log(`Server running on port ${PORT}...`);
