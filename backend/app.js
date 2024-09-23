@@ -116,8 +116,8 @@ app.post("/allboards/activesprints", async (req, res) => {
     const activeSprints = [];
     const sprintDependencies = [];
     const processedBoardIds = new Set(); // Maintain a set of processed board IDs
-    let projectIssues = []
-    let allSprints = []
+    let projectIssues = [];
+    let allSprints = [];
     // Function to process a single board
     const processBoard = async (board) => {
       const board_id = board.board_id;
@@ -133,7 +133,7 @@ app.post("/allboards/activesprints", async (req, res) => {
       const board_name = board.board_name;
       const board_type = board.board_type;
       const sprintsData = await getSprints(board_id);
-      allSprints.push(...sprintsData?.values)
+      allSprints.push(...sprintsData?.values);
 
       // const active_sprints = sprintsData?.values? sprintsData.values.filter((sprint) => sprint.state === "active"): [];
 
@@ -155,7 +155,7 @@ app.post("/allboards/activesprints", async (req, res) => {
       // console.log(activeSprints)
       for (let j = 0; j < active_sprints?.length; j++) {
         const sprintData = await getSprintIssues(active_sprints[j]?.id);
-        projectIssues = sprintData
+        projectIssues = sprintData;
         const stories = sprintData?.issues?.filter(
           (issue) => issue?.fields?.issuetype?.name === "Story"
         );
@@ -202,7 +202,9 @@ app.post("/allboards/activesprints", async (req, res) => {
         const totalMembers = Object.values(uniqueAssignees);
         // const boardBacklogs = await get_backlogs(board_id);
         for (const issue of stories) {
-          const blockedByLinks = issue?.fields?.issuelinks?.filter(link => link.hasOwnProperty('inwardIssue'));
+          const blockedByLinks = issue?.fields?.issuelinks?.filter((link) =>
+            link.hasOwnProperty("inwardIssue")
+          );
 
           if (blockedByLinks && blockedByLinks.length > 0) {
             const blockedBy = [];
@@ -210,7 +212,9 @@ app.post("/allboards/activesprints", async (req, res) => {
             // Use for...of instead of forEach to handle async/await
             for (const link of blockedByLinks) {
               // Fetch the issue details asynchronously for each blocked issue
-              const issueDetails = await get_issue_details_by_id(link?.inwardIssue?.id);
+              const issueDetails = await get_issue_details_by_id(
+                link?.inwardIssue?.id
+              );
 
               blockedBy.push({
                 id: link?.inwardIssue?.id,
@@ -219,7 +223,11 @@ app.post("/allboards/activesprints", async (req, res) => {
                 status: link?.inwardIssue?.fields?.status?.name,
                 priority: link?.inwardIssue?.fields?.priority?.name,
                 type: link?.inwardIssue?.fields?.issuetype?.name,
-                sprintDetails: issueDetails?.fields?.sprint || issueDetails?.fields?.customfield_10018?.[issueDetails?.fields?.customfield_10018?.length - 1], // Add sprint details from fetched issue
+                sprintDetails:
+                  issueDetails?.fields?.sprint ||
+                  issueDetails?.fields?.customfield_10018?.[
+                    issueDetails?.fields?.customfield_10018?.length - 1
+                  ], // Add sprint details from fetched issue
               });
             }
 
@@ -234,7 +242,6 @@ app.post("/allboards/activesprints", async (req, res) => {
             });
           }
         }
-
 
         activeSprints.push({
           board_id: board_id,
@@ -256,17 +263,17 @@ app.post("/allboards/activesprints", async (req, res) => {
           total_story_points: totalStoriesPoints,
           total_inProgress_points: totalInProgressPoints,
           members: totalMembers,
-          dependencies: sprintDependencies
+          dependencies: sprintDependencies,
         });
       }
     };
-    
 
     // Process all boards concurrently
     const promises = all_boards.map((board) => processBoard(board));
     await Promise.all(promises);
 
-    res.json(activeSprints,
+    res.json(
+      activeSprints
       // allSprints:allSprints
     );
   } catch (error) {
@@ -275,18 +282,18 @@ app.post("/allboards/activesprints", async (req, res) => {
   }
 });
 
-app.get('/issueDetails/:id', async (req, res) => {
-  const { id } = req.params
+app.get("/issueDetails/:id", async (req, res) => {
+  const { id } = req.params;
   try {
-    const issueDetails = await get_issue_details_by_id(id)
+    const issueDetails = await get_issue_details_by_id(id);
     res.json({ issueDetails: issueDetails });
   } catch (error) {
     res.json({
-      error: error
-    })
-    console.log(error)
+      error: error,
+    });
+    console.log(error);
   }
-})
+});
 
 //# get all boards with active sprints
 app.get("/projectSuccess/:projectId", async (req, res) => {
@@ -1036,7 +1043,7 @@ app.get("/sprintsHistory/:email", async (req, res) => {
         const boardId = await get_board_details_by_sprintId(sprint.sprintId);
         const issues = response.issues;
 
-        const contributionMade = issues 
+        const contributionMade = issues
           .filter(
             (emailFilter) =>
               emailFilter?.fields?.assignee?.emailAddress == email
@@ -1773,7 +1780,185 @@ function subtskCalaulation(all_pie_data, active_sprints) {
   return [response_data_obj];
 }
 
+app.post("/allboards/activesprints", async (req, res) => {
+  try {
+    const data = req.body;
+    const all_boards = data;
+    const activeSprints = [];
+    const sprintDependencies = [];
+    const processedBoardIds = new Set(); // Maintain a set of processed board IDs
 
+    // Function to process a single board
+    const processBoard = async (board) => {
+      const board_id = board.board_id;
+
+      // Skip processing if the board ID has already been processed
+      if (processedBoardIds.has(board_id)) {
+        return;
+      }
+
+      // Mark the current board ID as processed
+      processedBoardIds.add(board_id);
+
+      const board_name = board.board_name;
+      const board_type = board.board_type;
+      const sprintsData = await getSprints(board_id);
+
+      // const active_sprints = sprintsData?.values? sprintsData.values.filter((sprint) => sprint.state === "active"): [];
+
+      const active_sprints = sprintsData?.values
+        ? sprintsData.values.filter((sprint) => sprint.state === "active")
+        : [];
+      //
+      //   [
+      //   sprintsData?.values?.filter((sprint) => sprint.state === "closed").sort(
+      //     (a, b) => new Date(b.completeDate) - new Date(a.completeDate)
+      //   )[0],
+      //   ...(sprintsData?.values?.filter((sprint) => sprint.state === "active") ||
+      //     []),
+      // ].filter(Boolean);
+
+      if (active_sprints.length === 0) {
+        return;
+      }
+      // console.log(activeSprints)
+      for (let j = 0; j < active_sprints?.length; j++) {
+        const sprintData = await getSprintIssues(active_sprints[j]?.id);
+        const stories = sprintData?.issues?.filter(
+          (issue) => issue?.fields?.issuetype?.name === "Story"
+        );
+
+        const total_stories = stories?.length;
+
+        const done_stories = stories?.filter(
+          (issue) => issue?.fields?.status?.statusCategory?.name === "Done"
+        );
+        const in_progress_stories = stories?.filter(
+          (issue) =>
+            issue?.fields?.status?.statusCategory?.name === "In Progress"
+        );
+        let totalStoriesPoints = 0;
+        let totalInProgressPoints = 0;
+        //for getting the total story points for each sprint
+        for (let i = 0; i < stories?.length; i++) {
+          totalStoriesPoints =
+            totalStoriesPoints +
+            (stories[i]?.fields?.customfield_10020 == null
+              ? 0
+              : stories[i]?.fields?.customfield_10020);
+        }
+        //for getting the total story points in progress currently
+        in_progress_stories?.forEach((story) => {
+          totalInProgressPoints =
+            totalInProgressPoints +
+            (story?.fields?.customfield_10020 == null
+              ? 0
+              : story?.fields?.customfield_10020);
+        });
+        //for getting the total members working in each sprint
+        const uniqueAssignees = {};
+        stories?.forEach((ticket) => {
+          const assignee = ticket?.fields?.assignee;
+          if (assignee && !uniqueAssignees[assignee?.accountId]) {
+            uniqueAssignees[assignee?.accountId] = {
+              name: assignee?.displayName,
+              accountId: assignee?.accountId,
+              emailAddress: assignee?.emailAddress,
+            };
+          }
+        });
+        const totalMembers = Object.values(uniqueAssignees);
+        // const boardBacklogs = await get_backlogs(board_id);
+        for (const issue of stories) {
+          const blockedByLinks = issue?.fields?.issuelinks?.filter((link) =>
+            link.hasOwnProperty("inwardIssue")
+          );
+
+          if (blockedByLinks && blockedByLinks.length > 0) {
+            const blockedBy = [];
+
+            // Use for...of instead of forEach to handle async/await
+            for (const link of blockedByLinks) {
+              // Fetch the issue details asynchronously for each blocked issue
+              const issueDetails = await get_issue_details_by_id(
+                link?.inwardIssue?.id
+              );
+
+              blockedBy.push({
+                id: link?.inwardIssue?.id,
+                key: link?.inwardIssue?.key,
+                summary: link?.inwardIssue?.fields?.summary,
+                status: link?.inwardIssue?.fields?.status?.name,
+                priority: link?.inwardIssue?.fields?.priority?.name,
+                type: link?.inwardIssue?.fields?.issuetype?.name,
+                sprintDetails:
+                  issueDetails?.fields?.sprint ||
+                  issueDetails?.fields?.customfield_10018?.[
+                    issueDetails?.fields?.customfield_10018?.length - 1
+                  ], // Add sprint details from fetched issue
+              });
+            }
+
+            sprintDependencies.push({
+              story_id: issue?.id,
+              story_key: issue?.key,
+              story_name: issue?.fields?.summary,
+              story_type: issue?.fields?.issuetype?.name,
+              sprint_id: active_sprints[j]?.id,
+              sprint_name: active_sprints[j]?.name,
+              blockedBy,
+            });
+          }
+        }
+
+        activeSprints.push({
+          board_id: board_id,
+          board_name: board_name,
+          board_type: board_type,
+          // backlogs: boardBacklogs?.issues?.filter((backlog) => (backlog.fields.issuetype.name === "Story"))?.length,
+          sprint_id: active_sprints[j]?.id,
+          sprint_name: active_sprints[j]?.name,
+          sprint_status: active_sprints[j]?.state,
+          sprint_start: active_sprints[j]?.startDate
+            ? active_sprints[j]?.startDate
+            : "No date added",
+          sprint_end: active_sprints[j]?.endDate
+            ? active_sprints[j]?.endDate
+            : "No date added",
+          total_stories: total_stories,
+          done_stories: done_stories?.length,
+          in_progress_stories: in_progress_stories?.length,
+          total_story_points: totalStoriesPoints,
+          total_inProgress_points: totalInProgressPoints,
+          members: totalMembers,
+          dependencies: sprintDependencies,
+        });
+      }
+    };
+
+    // Process all boards concurrently
+    const promises = all_boards.map((board) => processBoard(board));
+    await Promise.all(promises);
+
+    res.json(activeSprints);
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/issueDetails/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const issueDetails = await get_issue_details_by_id(id);
+    res.json({ issueDetails: issueDetails });
+  } catch (error) {
+    res.json({
+      error: error,
+    });
+    console.log(error);
+  }
+});
 
 // // //
 
@@ -1919,16 +2104,15 @@ app.delete("/delete/summary/:board_id", async (req, res) => {
   }
 });
 
-
 // post calls for changing data from mib
 app.get("/changeAssignee/:issueId/:newAssigneeAccountId", async (req, res) => {
   try {
-    const { issueId, newAssigneeAccountId } = req.params
-    const response = await change_issue_assignee(issueId, newAssigneeAccountId)
+    const { issueId, newAssigneeAccountId } = req.params;
+    const response = await change_issue_assignee(issueId, newAssigneeAccountId);
 
-   return  res.json({
-     response: response.data
-    })
+    return res.json({
+      response: response.data,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Internal server error" });
