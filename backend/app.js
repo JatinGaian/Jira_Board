@@ -2315,5 +2315,5 @@ app.post('/mib/webhook', async (req, res) => {
 })
 
 app.listen(PORT, () => {
-  // // conole.log(`Server running on port ${PORT}...`);
+  console.log(`Server running on port ${PORT}...`);
 });
