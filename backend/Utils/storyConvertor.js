@@ -38,7 +38,7 @@ const storyConvertor = (issue, dataForProjectLead, boardId, boardName, currentSp
         story_name: issue?.fields?.summary,
         story_type: issue?.fields?.issuetype?.name,
         issueIcon: issue?.fields?.issuetype?.iconUrl,
-        story_status: issue?.fields?.status?.statusCategory?.name,
+        story_status: issue?.fields?.status?.name,
         projectData: {
             project_id: issue?.fields?.project?.id,
             project_name: issue?.fields?.project?.name,
@@ -72,7 +72,7 @@ const storyConvertor = (issue, dataForProjectLead, boardId, boardName, currentSp
         team: issue?.fields?.customfield_10001?.name,
         duedate: getDate(issue?.fields?.duedate == null ? issue?.fields?.customfield_10018?.[issue?.fields?.customfield_10018?.length - 1]?.endDate : issue?.fields?.duedate),
         sprintDuration: calculateSprintDuration(currentSprint?.startDate, currentSprint?.endDate),
-        // daysSpent: daysSpent,
+        // daysSpent: daysSpent, 
         daysLeft: calculateRemainingDays(currentSprint ? currentSprint?.endDate : issue?.fields?.customfield_10018?.endDate),
         number_of_sub_tasks: issue?.fields?.subtasks?.length,
         completed_sub_tasks: issue?.fields?.subtasks?.filter(subtask => subtask?.fields?.status?.name === "Done")?.length,
