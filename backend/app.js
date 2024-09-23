@@ -103,7 +103,7 @@ app.get("/allBoards", async (req, res) => {
     res.json({ response, data: data });
   } catch (error) {
     console.error("Error fetching boards:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(401).json({ error: error });
   }
 });
 
