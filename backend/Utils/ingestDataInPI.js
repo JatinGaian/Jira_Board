@@ -1048,30 +1048,24 @@ const AllBoards = [
 ]
 
 const ingestDataInPi = async () => {
+
+    function chunkArray(arr, chunkSize) {
+        const chunks = [];
+        for (let i = 0; i < arr.length; i += chunkSize) {
+            chunks.push(arr.slice(i, i + chunkSize));
+        }
+        return chunks;
+    }
     try {
-        // const data = await get_all_boards();
-        // const activeBoards = data.filter(
-        //     (board) => !board?.location?.projectName?.startsWith("[Discarded]")
-        // );
-
-        // let AllBoards = activeBoards
-        //     ? activeBoards.map((board) => ({
-        //         board_id: board.id,
-        //         board_name: board.name,
-        //         board_type: board.type,
-        //         project_key: board.location ? board.location.projectKey : null,
-        //         project_name: board.location ? board.location.projectName : null,
-        //         projectId: board.location ? board.location.projectId : null,
-        //     }))
-        //     : [];
-
         for (const board of AllBoards) {
             try {
                 const response = await axios.get(
                     `https://${domain}.atlassian.net/rest/agile/1.0/board/${board?.board_id}/sprint?state=active`,
                     {
-                        headers: { "Content-Type": "application/json" },
-                        auth: auth,  // Adding authentication directly
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Basic a2FtYXRoLmFAbW9iaXVzZHRhYXMuYWk6QVRBVFQzeEZmR0YwY3hhcGlodWMxc1NtWDVYTTdOa05vb0l4eDJDaWJ5MnFwbS1yTDNpT2JUTklCUURVakFMVWRUZjhpQ2hBQTYzdE5aeXFUSnBxSDNKSnJ6YXlIOWI2UEtvYktlajdLOUE5dDZaaExtcG9DSXE0ZUxXLXRKVlRDU3lkZTd5Q2JxOVFxQVF6NkdqdnNnRTNRZklwTHVXa28wcHRTX2dZVk1sb1VoY3dfam4zbXRBPTlDOEQ4NkU1` // Use Basic Auth with the encoded token
+                        },
                     }
                 );
                 // console.log(response.data);// Print the active sprint data
@@ -1081,27 +1075,33 @@ const ingestDataInPi = async () => {
                         console.log("sprint Id", sprint.id)
                         const sprintIssues = await axios.get(`https://${domain}.atlassian.net/rest/agile/1.0/sprint/${sprint.id}/issue?maxResults=200&expand=changelog`,
                             {
-                                headers: { "Content-Type": "application/json" },
-                                auth: auth,  // Adding authentication directly
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Basic a2FtYXRoLmFAbW9iaXVzZHRhYXMuYWk6QVRBVFQzeEZmR0YwY3hhcGlodWMxc1NtWDVYTTdOa05vb0l4eDJDaWJ5MnFwbS1yTDNpT2JUTklCUURVakFMVWRUZjhpQ2hBQTYzdE5aeXFUSnBxSDNKSnJ6YXlIOWI2UEtvYktlajdLOUE5dDZaaExtcG9DSXE0ZUxXLXRKVlRDU3lkZTd5Q2JxOVFxQVF6NkdqdnNnRTNRZklwTHVXa28wcHRTX2dZVk1sb1VoY3dfam4zbXRBPTlDOEQ4NkU1` // Use Basic Auth with the encoded token
+                                },
                             }
                         )
                         const issues = sprintIssues.data?.issues
-                        const issuesWithUpdatedFields = await changeIssueFields(issues)
-                        try {
-                            const ingestData = axios.post(
-                                `https://ig.gov-cloud.ai/tf-entity-ingestion/v1.0/schemas/66ec04f3f604240f96404643/instances?upsert=true`,
-                                issuesWithUpdatedFields, // Data to be sent as the body of the request
-                                {
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                        authorization: `Bearer ${tokenForMIB}`
+                        const issueChunks = chunkArray(issues, 10);
+                        for (const issueChunk of issueChunks) {
+                            const issuesWithUpdatedFields = await changeIssueFields(issueChunk)
+                            try {
+                                const ingestData = axios.post(
+                                    `https://ig.gov-cloud.ai/tf-entity-ingestion/v1.0/schemas/66ec04f3f604240f96404643/instances?upsert=true`,
+                                    issuesWithUpdatedFields, // Data to be sent as the body of the request
+                                    {
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                            authorization: `Bearer ${tokenForMIB}`
+                                        }
                                     }
-                                }
-                            );
-                            console.log(ingestData.data)
-                        } catch (error) {
-                            console.log(error)
+                                );
+                                console.log(ingestData.data)
+                            } catch (error) {
+                                console.log(error)
+                            }
                         }
+
                         // console.log(sprintIssues.data, `sprint id ${sprint.id}`)
                     }
                 }
