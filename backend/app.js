@@ -48,6 +48,7 @@ const getProjectSuccess = require("./APIs/getProjectSuccess");
 const get_project_all_detailed_issues = require("./APIs/get_project_all_detailed_issues");
 const get_issue_details_by_id = require("./APIs/get_issue_details_by_id");
 const change_issue_assignee = require("./APIs/change_issue_assignee");
+const axios = require("axios");
 
 const PORT = 8080;
 const mib_bearer = process.env.MIB_BEARER_TOKEN
@@ -2333,7 +2334,7 @@ app.post("/mib/webhook", async (req, res) => {
       projectName: body.project.name,
       projectKey: body.project.key,
     };
-    
+
   } else {
     return res.status(400).json({ error: "Unrecognized event type" });
   }
