@@ -2333,6 +2333,7 @@ app.post("/mib/webhook", async (req, res) => {
       projectName: body.project.name,
       projectKey: body.project.key,
     };
+    
   } else {
     return res.status(400).json({ error: "Unrecognized event type" });
   }
