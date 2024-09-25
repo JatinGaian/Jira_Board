@@ -2375,7 +2375,11 @@ app.post("/mib/webhook", async (req, res) => {
       "Error ingesting data:",
       error.response ? error.response.data : error.message
     );
-    res.status(500).json({ error: "Internal server error" });
+    console.log(error)
+    res.status(500).json({
+      error: "Internal server error",
+      errorMessage : error
+     });
   }
 });
 
