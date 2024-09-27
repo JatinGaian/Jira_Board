@@ -20,6 +20,8 @@ function changeIssueFields(responseArray) {
                 storyPoint: issue.fields.customfield_10020,
                 storyPointEstimate: issue.fields.customfield_10026,
                 teamDetails: issue.fields.customfield_10001,
+                sprintHistory: issue.fields.customfield_10018,
+                lastSprint: issue.fields.customfield_10018?.[0],
                 // Transform avatarUrls in assignee, creator, reporter
                 assignee: issue.fields.assignee
                     ? {

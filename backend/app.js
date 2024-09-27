@@ -898,7 +898,7 @@ app.get("/sprint/:sprintId/members", async (req, res) => {
 });
 
 //* project history and project issues for selected members
-app.get("/projectHistory/:memberEmail", async (req, res) => {
+app.get("/projectHistory/:memberEmail", async (req, res) => { 
   try {
     const { memberEmail } = req.params; // User's Jira memberEmail from query parameter
     if (!memberEmail) {
@@ -2382,6 +2382,14 @@ app.post("/mib/webhook", async (req, res) => {
      });
   }
 });
+
+app.post('/webhookResponse', async (req, res) => {
+  const body = req.body
+  console.log(body)
+  res.json({
+    body : body
+  })
+})
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}...`);
