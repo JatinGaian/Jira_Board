@@ -1,11 +1,5 @@
 var axios = require("axios");
 require("dotenv").config();
-
-// const username = process.env.ATLASSIAN_USERNAME;
-// const password = process.env.ATLASSIAN_API_KEY;
-// const domain = process.env.DOMAIN;
-// const username = "kamath.a@mobiusdtaas.ai";
-// const password = "ATATT3xFfGF0cxapihuc1sSmX5XM7NkNooIxx2Ciby2qpm-rL3iObTNIBQDUjALUdTf8iChAA63tNZyqTJpqH3JJrzayH9b6PKobKej7K9A9t6ZhLmpoCIq4eLW-tJVTCSyde7yCbq9QqAQz6GjvsgE3QfIpLuWko0ptS_gYVMloUhcw_jn3mtA=9C8D86E5-H88QHQGIPBhqb65AWKLyXua6PrPVUMdKVjY35Lt8ft8iKLrWo3sIkK0eWugFpVHLtbq3HygJS-iIc5TNXP00=539CB907";
 const domain = "mobiusdtaas";
 const encodedToken = process.env.ENCODED_TOKEN
 // const encodedToken = Buffer.from(`${username}:${password}`).toString('base64');

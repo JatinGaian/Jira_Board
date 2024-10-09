@@ -2310,15 +2310,22 @@ app.post("/mib/webhook", async (req, res) => {
   try {
     // Get the current date to set as 'createdAt'
     const createdAt = new Date().toISOString();
-    const dataToIngest = jiraResponse?.map((item) => {
-      return {
-        transactionType: item.issue ? "issue" : "sprint",
-        sourceId: item.issue ? item.issue.id: JSON.stringify(item.sprint.id),
+    // const dataToIngest = jiraResponse?.map((item) => {
+    //   return {
+    //     transactionType: item.issue ? "issue" : "sprint",
+    //     sourceId: item.issue ? item.issue.id: JSON.stringify(item.sprint.id),
+    //     isProcessed: false,
+    //     createdAt: createdAt,
+    //     // transactionData: item.issue ? item.issue : item.sprint
+    //   };
+    // });
+    const dataToIngest = {
+        transactionType: jiraResponse.issue ? "issue" : "sprint",
+        sourceId: jiraResponse.issue ? jiraResponse.issue.id : JSON.stringify(jiraResponse.sprint.id),
         isProcessed: false,
         createdAt: createdAt,
         // transactionData: item.issue ? item.issue : item.sprint
       };
-    });
 
 
     const ingestionResponse = await axios.post(
