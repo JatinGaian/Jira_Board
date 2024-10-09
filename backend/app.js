@@ -2329,7 +2329,7 @@ app.post("/mib/webhook", async (req, res) => {
 
 
     const ingestionResponse = await axios.post(
-      "https://ig.gov-cloud.ai/tf-entity-ingestion/v1.0/schemas/66f100f74006bd33cd1a3832/instances?upsert=true",
+      "https://ig.gov-cloud.ai/tf-entity-ingestion/v1.0/schemas/66f100f74006bd33cd1a3832/instance?upsert=true",
       dataToIngest,
       {
         headers: {
