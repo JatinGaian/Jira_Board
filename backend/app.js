@@ -260,7 +260,7 @@ app.post("/allboards/activesprints", async (req, res) => {
         });
       }
     };
-    
+
 
     // Process all boards concurrently
     const promises = all_boards.map((board) => processBoard(board));
@@ -898,7 +898,7 @@ app.get("/sprint/:sprintId/members", async (req, res) => {
 });
 
 //* project history and project issues for selected members
-app.get("/projectHistory/:memberEmail", async (req, res) => { 
+app.get("/projectHistory/:memberEmail", async (req, res) => {
   try {
     const { memberEmail } = req.params; // User's Jira memberEmail from query parameter
     if (!memberEmail) {
@@ -1028,7 +1028,7 @@ app.get("/sprintsHistory/:email", async (req, res) => {
         const boardId = await get_board_details_by_sprintId(sprint.sprintId);
         const issues = response.issues;
 
-        const contributionMade = issues 
+        const contributionMade = issues
           .filter(
             (emailFilter) =>
               emailFilter?.fields?.assignee?.emailAddress == email
@@ -1918,8 +1918,8 @@ app.get("/changeAssignee/:issueId/:newAssigneeAccountId", async (req, res) => {
     const { issueId, newAssigneeAccountId } = req.params
     const response = await change_issue_assignee(issueId, newAssigneeAccountId)
 
-   return  res.json({
-     response: response.data
+    return res.json({
+      response: response.data
     })
   } catch (error) {
     console.error(error);
@@ -2320,12 +2320,12 @@ app.post("/mib/webhook", async (req, res) => {
     //   };
     // });
     const dataToIngest = {
-        transactionType: jiraResponse.issue ? "issue" : "sprint",
-        sourceId: jiraResponse.issue ? jiraResponse.issue.id : JSON.stringify(jiraResponse.sprint.id),
-        isProcessed: false,
-        createdAt: createdAt,
-        // transactionData: item.issue ? item.issue : item.sprint
-      };
+      transactionType: jiraResponse?.issue ? "issue" : jiraResponse?.sprint ? "sprint" : null,
+       sourceId: jiraResponse?.issue ? jiraResponse?.issue?.id : jiraResponse?.sprint ? JSON.stringify(jiraResponse?.sprint?.id) : null,
+      isProcessed: false,
+      createdAt: createdAt,
+      // transactionData: item.issue ? item.issue : item.sprint
+    };
 
 
     const ingestionResponse = await axios.post(
@@ -2350,9 +2350,9 @@ app.post("/mib/webhook", async (req, res) => {
     }
 
   } catch (error) {
-    console.error(
+    console.log(
       "Error sending data to the new endpoint:",
-      error.response ? error.response.data : error.message
+      ingestionResponse.data
     );
   }
 });
@@ -2361,7 +2361,7 @@ app.post('/webhookResponse', async (req, res) => {
   const body = req.body
   console.log(body)
   res.json({
-    body : body
+    body: body
   })
 })
 
