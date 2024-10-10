@@ -2346,11 +2346,11 @@ app.post("/mib/webhook", async (req, res) => {
       console.log(ingestionResponse?.data)
       res
         .status(ingestionResponse?.status)
-        .json({ errorMessage: ingestionResponse?.data?.msg });
+        .json({ tryErrorMessage: ingestionResponse?.data?.msg });
     }
 
   } catch (error) {
-    console.log({ errorMessage: error?.response?.data?.errorMessage });
+    console.log({ catchErrorMessage: error?.response?.data?.errorMessage });
   }
 });
 
