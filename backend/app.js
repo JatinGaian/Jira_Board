@@ -2353,7 +2353,8 @@ app.post("/mib/webhook", async (req, res) => {
   } catch (error) {
     console.log(
       "Error sending data to the PI",
-      ingestionResponse.data
+      error
+      // ingestionResponse.data
     );
   }
 });
