@@ -2305,7 +2305,7 @@ app.post("/interactions", async (req, res) => {
 
 app.post("/mib/webhook", async (req, res) => {
   const jiraResponse = req.body;
-  console.log(jiraResponse);
+  console.log(jiraResponse.webhookEvent,", issueId = " , jiraResponse?.issue?.id, "sprintId = ", jiraResponse?.sprint?.id);
   const createdAt = new Date().toISOString();
   // New POST request right after receiving the body
   const dataToIngest = {
@@ -2345,7 +2345,7 @@ app.post("/mib/webhook", async (req, res) => {
     } else {
       console.log(ingestionResponse?.data)
       res
-        .status(ingestionResponse?.status)
+        .status(ingestionResponse?.data?.status)
         .json({ tryErrorMessage: ingestionResponse?.data?.msg });
     }
 
