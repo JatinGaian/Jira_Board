@@ -2321,7 +2321,7 @@ app.post("/mib/webhook", async (req, res) => {
     // });
     const dataToIngest = {
       transactionType: jiraResponse?.issue ? "issue" : jiraResponse?.sprint ? "sprint" : null,
-       sourceId: jiraResponse?.issue ? jiraResponse?.issue?.id : jiraResponse?.sprint ? JSON.stringify(jiraResponse?.sprint?.id) : null,
+      sourceId: jiraResponse?.issue ? jiraResponse?.issue?.id : jiraResponse?.sprint ? JSON.stringify(jiraResponse?.sprint?.id) : null,
       isProcessed: false,
       createdAt: createdAt,
       // transactionData: item.issue ? item.issue : item.sprint
@@ -2342,16 +2342,17 @@ app.post("/mib/webhook", async (req, res) => {
     if (ingestionResponse.status >= 200 && ingestionResponse.status < 300) {
       res
         .status(200)
-        .json({ message: ingestionResponse.data });
+        .json({ message: ingestionResponse?.data });
     } else {
+      console.log(ingestionResponse?.status)
       res
-        .status(ingestionResponse.status)
+        .status(ingestionResponse?.status)
         .json({ error: "Failed to ingest data into the schema" });
     }
 
   } catch (error) {
     console.log(
-      "Error sending data to the new endpoint:",
+      "Error sending data to the PI",
       ingestionResponse.data
     );
   }
