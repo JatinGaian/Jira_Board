@@ -2350,7 +2350,7 @@ app.post("/mib/webhook", async (req, res) => {
     }
 
   } catch (error) {
-    console.log({ catchErrorMessage: error?.response?.data?.errorMessage });
+    console.log({ catchErrorMessage: error });
   }
 });
 
