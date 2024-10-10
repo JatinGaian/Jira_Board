@@ -2306,10 +2306,17 @@ app.post("/interactions", async (req, res) => {
 app.post("/mib/webhook", async (req, res) => {
   const jiraResponse = req.body;
   console.log(jiraResponse);
+  const createdAt = new Date().toISOString();
   // New POST request right after receiving the body
+  const dataToIngest = {
+    transactionType: jiraResponse?.issue ? "issue" : jiraResponse?.sprint ? "sprint" : null,
+    sourceId: jiraResponse?.issue ? jiraResponse?.issue?.id : jiraResponse?.sprint ? JSON.stringify(jiraResponse?.sprint?.id) : null,
+    isProcessed: false,
+    createdAt: createdAt,
+    // transactionData: item.issue ? item.issue : item.sprint
+  };
   try {
     // Get the current date to set as 'createdAt'
-    const createdAt = new Date().toISOString();
     // const dataToIngest = jiraResponse?.map((item) => {
     //   return {
     //     transactionType: item.issue ? "issue" : "sprint",
@@ -2319,15 +2326,6 @@ app.post("/mib/webhook", async (req, res) => {
     //     // transactionData: item.issue ? item.issue : item.sprint
     //   };
     // });
-    const dataToIngest = {
-      transactionType: jiraResponse?.issue ? "issue" : jiraResponse?.sprint ? "sprint" : null,
-      sourceId: jiraResponse?.issue ? jiraResponse?.issue?.id : jiraResponse?.sprint ? JSON.stringify(jiraResponse?.sprint?.id) : null,
-      isProcessed: false,
-      createdAt: createdAt,
-      // transactionData: item.issue ? item.issue : item.sprint
-    };
-
-
     const ingestionResponse = await axios.post(
       "https://ig.gov-cloud.ai/tf-entity-ingestion/v1.0/schemas/66f100f74006bd33cd1a3832/instance?upsert=true",
       dataToIngest,
@@ -2339,23 +2337,20 @@ app.post("/mib/webhook", async (req, res) => {
       }
     );
 
-    if (ingestionResponse.status >= 200 && ingestionResponse.status < 300) {
+    if (ingestionResponse?.data?.status === "Success") {
+      console.log(ingestionResponse?.data?.msg)
       res
         .status(200)
-        .json({ message: ingestionResponse?.data });
+        .json({ message: ingestionResponse?.data?.msg });
     } else {
-      console.log(ingestionResponse?.status)
+      console.log(ingestionResponse?.data)
       res
         .status(ingestionResponse?.status)
-        .json({ error: "Failed to ingest data into the schema" });
+        .json({ errorMessage: ingestionResponse?.data?.msg });
     }
 
   } catch (error) {
-    console.log(
-      "Error sending data to the PI",
-      error
-      // ingestionResponse.data
-    );
+    console.log({ errorMessage: error?.response?.data?.errorMessage });
   }
 });
 
