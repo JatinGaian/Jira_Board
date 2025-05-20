@@ -2355,12 +2355,24 @@ app.post("/mib/webhook", async (req, res) => {
 });
 
 app.post('/webhookResponse', async (req, res) => {
-  const body = req.body
-  console.log(body)
-  res.json({
-    body: body
-  })
-})
+  const body = req.body;
+  // Full payload nicely printed
+  console.log("📦 Full Webhook Payload:");
+  console.log(JSON.stringify(body, null, 2));
+  // Log updateStatus if present
+  if (body.PI_Ingestion_Response?.updateStatus) {
+    console.log("✅ Update Status:");
+    console.table(body.PI_Ingestion_Response.updateStatus);
+  }
+  // Log ingestStatus if present
+  if (body.PI_Ingestion_Response?.ingestStatus) {
+    console.log("📥 Ingest Status:");
+    console.table(body.PI_Ingestion_Response.ingestStatus);
+  }
+  // Send a success response
+  res.status(200).json({ message: "Webhook data received and logged successfully" });
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}...`);
